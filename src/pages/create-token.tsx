@@ -630,7 +630,7 @@ const SubmitButton = ({
   return (
     <div className="flex items-center gap-4">
       <Button
-        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-black"
+        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-black hover:scale-105 active:scale-95 transition-transform"
         type="button"
         onClick={() => {
           form.reset();
@@ -641,7 +641,11 @@ const SubmitButton = ({
         <span className="iconify ph--arrow-counter-clockwise-bold w-5 h-5" />
         <span>Reset</span>
       </Button>
-      <Button className="flex items-center gap-2" type="submit" disabled={isSubmitting}>
+      <Button
+        className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+        type="submit"
+        disabled={isSubmitting}
+      >
         {isSubmitting ? (
           <>
             <span className="iconify ph--spinner w-5 h-5 animate-spin" />
@@ -673,7 +677,7 @@ const TokenCreationSuccess = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/"
-            className="bg-white/10 px-6 py-3 rounded-xl font-medium hover:bg-white/20 transition"
+            className="bg-white/10 px-6 py-3 rounded-xl font-medium hover:bg-white/20 hover:scale-105 active:scale-95 transition-all"
           >
             Explore Tokens
           </Link>
@@ -681,7 +685,7 @@ const TokenCreationSuccess = () => {
             onClick={() => {
               window.location.reload();
             }}
-            className="cursor-pointer bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-xl font-medium hover:opacity-90 transition"
+            className="cursor-pointer bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
           >
             Create Another Token
           </button>

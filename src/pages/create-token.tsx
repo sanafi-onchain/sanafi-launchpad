@@ -685,7 +685,7 @@ const TokenCreationSuccess = () => {
             onClick={() => {
               window.location.reload();
             }}
-            className="cursor-pointer bg-gradient-to-r from-pink-500 to-purple-500 px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
+            className="cursor-pointer bg-gradient-to-r from-[#1c4d3e] to-black-500 px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
           >
             Create Another Token
           </button>

@@ -222,7 +222,7 @@ export default function CreateToken() {
                   <div className="bg-white/10 p-8 rounded-xl border border-white/20 flex flex-col items-center">
                     <div className="w-16 h-16 border-4 border-t-primary border-white/30 rounded-full animate-spin mb-4"></div>
                     <p className="text-white text-lg font-medium">Creating your token...</p>
-                    <p className="text-white/70 text-sm mt-2">Please don't close this page</p>
+                    <p className="text-white/70 text-sm mt-2">Please don&apos;t close this page</p>
                   </div>
                 </div>
               )}

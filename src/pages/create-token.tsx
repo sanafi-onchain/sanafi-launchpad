@@ -147,11 +147,8 @@ export default function CreateToken() {
         }
 
         const uploadResult = await uploadResponse.json();
-
-        const { tokenTx } = uploadResult;
-        console.log({ uploadResult });
-        console.log({ tokenTx });
-        const transaction = Transaction.from(Buffer.from(tokenTx, 'base64'));
+        const { poolTx } = uploadResult;
+        const transaction = Transaction.from(Buffer.from(poolTx, 'base64'));
 
         // Step 2: Sign with keypair first
         transaction.sign(keyPair);

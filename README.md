@@ -114,3 +114,89 @@ pnpm build
 ```bash
 pnpm start
 ```
+
+## Docker Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose installed on your server
+- All required environment variables ready
+
+### Deployment Steps
+
+1. Copy the environment template and fill in your values
+
+```bash
+cp .env.docker.example .env
+# Edit .env with your actual configuration values
+```
+
+2. Build and start the Docker container on port 3012
+
+```bash
+docker-compose up -d
+```
+
+This will:
+
+- Build the Docker image for the application
+- Start the container and expose it on port 3012
+- Automatically restart the container if it crashes
+
+3. Check the container status
+
+```bash
+docker-compose ps
+```
+
+4. View logs
+
+```bash
+docker-compose logs -f
+```
+
+5. Stopping the application
+
+```bash
+docker-compose down
+```
+
+### Updating the Application
+
+When you have changes to deploy:
+
+```bash
+# Pull the latest code
+git pull
+
+# Rebuild and restart the container
+docker-compose up -d --build
+```
+
+### Troubleshooting
+
+If you encounter issues:
+
+1. Check Docker logs:
+
+```bash
+docker-compose logs -f
+```
+
+2. Access the container shell:
+
+```bash
+docker-compose exec sanafi-launchpad sh
+```
+
+3. Verify environment variables are correctly set:
+
+```bash
+docker-compose exec sanafi-launchpad env
+```
+
+4. Restart the container:
+
+```bash
+docker-compose restart
+```

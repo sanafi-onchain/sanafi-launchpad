@@ -1,10 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { z } from 'zod';
 import Header from '../components/Header';
 import { ConnectWalletButton } from '../components/ConnectWalletButton';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/Dialog';
 import { useForm } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
 import { Keypair, Transaction } from '@solana/web3.js';
@@ -14,7 +20,10 @@ import { toast } from 'sonner';
 // Define the schema for form validation
 const founderSchema = z.object({
   name: z.string().min(1, 'Founder name is required'),
-  twitter: z.string().min(1, 'X Profile is required'),
+  twitter: z
+    .string()
+    .regex(/^@[^\s]+$/, 'X Profile must start with "@" and cannot contain spaces')
+    .min(1, 'X Profile is required'),
 });
 
 const tokenSchema = z.object({
@@ -33,7 +42,10 @@ const tokenSchema = z.object({
     .string()
     .min(1, 'Description is required')
     .max(500, 'Description cannot exceed 500 characters'),
-  twitter: z.string().min(1, 'X Profile is required'),
+  twitter: z
+    .string()
+    .regex(/^@[^\s]+$/, 'X Profile must start with "@" and cannot contain spaces')
+    .min(1, 'X Profile is required'),
   telegram: z.string().url({ message: 'Please enter a valid URL' }).optional().or(z.literal('')),
   linkedin: z.string().url({ message: 'Please enter a valid URL' }).optional().or(z.literal('')),
   founders: z
@@ -68,6 +80,9 @@ export default function CreateToken() {
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [founders, setFounders] = useState<FounderInfo[]>([{ name: '', twitter: '' }]);
+
+  // Create a ref to the form element for scrolling after errors
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm({
     defaultValues: {
@@ -131,7 +146,11 @@ export default function CreateToken() {
           throw new Error(error.error);
         }
 
-        const { tokenTx } = await uploadResponse.json();
+        const uploadResult = await uploadResponse.json();
+
+        const { tokenTx } = uploadResult;
+        console.log({ uploadResult });
+        console.log({ tokenTx });
         const transaction = Transaction.from(Buffer.from(tokenTx, 'base64'));
 
         // Step 2: Sign with keypair first
@@ -199,13 +218,18 @@ export default function CreateToken() {
           {tokenCreated && !isLoading ? (
             <TokenCreationSuccess />
           ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
-              }}
-              className="space-y-8"
-            >
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-8" ref={formRef}>
+              {/* Loading Overlay */}
+              {isLoading && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-white/10 p-8 rounded-xl border border-white/20 flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-t-primary border-white/30 rounded-full animate-spin mb-4"></div>
+                    <p className="text-white text-lg font-medium">Creating your token...</p>
+                    <p className="text-white/70 text-sm mt-2">Please don't close this page</p>
+                  </div>
+                </div>
+              )}
+
               {/* Token Details Section */}
               <div className="bg-white/5 rounded-xl p-8 backdrop-blur-sm border border-white/10">
                 <h2 className="text-2xl font-bold mb-4">Token Details</h2>
@@ -232,6 +256,7 @@ export default function CreateToken() {
                             onChange={(e) => field.handleChange(e.target.value)}
                             required
                             minLength={3}
+                            disabled={isLoading}
                           />
                         ),
                       })}
@@ -257,6 +282,7 @@ export default function CreateToken() {
                             onChange={(e) => field.handleChange(e.target.value)}
                             required
                             maxLength={10}
+                            disabled={isLoading}
                           />
                         ),
                       })}
@@ -286,6 +312,7 @@ export default function CreateToken() {
                               }}
                               required
                               maxLength={500}
+                              disabled={isLoading}
                             />
                             <div className="text-right text-xs text-gray-400 mt-1">
                               {field.state.value?.length || 0}/500 characters
@@ -353,6 +380,8 @@ export default function CreateToken() {
                             accept=".png,.jpg,.jpeg,.svg"
                             className="hidden"
                             onChange={(e) => {
+                              if (isLoading) return;
+
                               const file = e.target.files?.[0];
                               if (file) {
                                 // Check file size (2MB = 2 * 1024 * 1024 bytes)
@@ -378,6 +407,7 @@ export default function CreateToken() {
                                 field.handleChange(file);
                               }
                             }}
+                            disabled={isLoading}
                           />
                         </div>
                       ),
@@ -394,12 +424,14 @@ export default function CreateToken() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (isLoading) return;
                         if (founders.length < 4) {
                           const updatedFounders = [...founders, { name: '', twitter: '' }];
                           setFounders(updatedFounders);
                           form.setFieldValue('founders', updatedFounders);
                         }
                       }}
+                      disabled={isLoading}
                       className="bg-white/10 px-3 py-1 rounded-lg text-sm hover:bg-white/20 transition flex items-center gap-1"
                     >
                       <span className="iconify ph--plus-bold w-4 h-4" />
@@ -423,10 +455,12 @@ export default function CreateToken() {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (isLoading) return;
                                   const updatedFounders = founders.filter((_, i) => i !== index);
                                   setFounders(updatedFounders);
                                   form.setFieldValue('founders', updatedFounders);
                                 }}
+                                disabled={isLoading}
                                 className="text-red-400 hover:text-red-300 transition text-sm flex items-center gap-1"
                               >
                                 <span className="iconify ph--trash-bold w-4 h-4" />
@@ -451,6 +485,7 @@ export default function CreateToken() {
                                   form.setFieldValue('founders', updatedFounders);
                                 }}
                                 required
+                                disabled={isLoading}
                               />
                             </div>
                             <div>
@@ -469,6 +504,7 @@ export default function CreateToken() {
                                   form.setFieldValue('founders', updatedFounders);
                                 }}
                                 required
+                                disabled={isLoading}
                               />
                             </div>
                           </div>
@@ -503,6 +539,7 @@ export default function CreateToken() {
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           required
+                          disabled={isLoading}
                         />
                       ),
                     })}
@@ -527,6 +564,7 @@ export default function CreateToken() {
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           required
+                          disabled={isLoading}
                         />
                       ),
                     })}
@@ -550,6 +588,7 @@ export default function CreateToken() {
                           placeholder="https://t.me/yourusername"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
+                          disabled={isLoading}
                         />
                       ),
                     })}
@@ -573,6 +612,7 @@ export default function CreateToken() {
                           placeholder="https://linkedin.com/in/yourusername"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
+                          disabled={isLoading}
                         />
                       ),
                     })}
@@ -622,43 +662,120 @@ const SubmitButton = ({
   resetLogoPreview: () => void;
 }) => {
   const { publicKey } = useWallet();
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
   if (!publicKey) {
     return <ConnectWalletButton />;
   }
 
+  const handleSubmit = () => {
+    // Validate form using tokenSchema before showing preview modal
+    const result = tokenSchema.safeParse(form.state.values);
+    if (!result.success) {
+      // If validation fails, show toast error and return
+      form.validate(); // Trigger form validation to show validation UI
+
+      // Extract error messages from validation result and show in toast
+      const errors = result.error.errors;
+      const firstError = errors[0]?.message || 'Please check the form for errors';
+      toast.error(firstError);
+      return;
+    }
+    // If validation passes, show preview modal
+    setShowPreviewModal(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setShowPreviewModal(false);
+    // Call the form's submit handler and handle loading state
+    setIsSubmittingForm(true);
+    form
+      .handleSubmit()
+      .catch((error) => {
+        console.error('Form submission error:', error);
+        toast.error('Failed to create token');
+      })
+      .finally(() => {
+        setIsSubmittingForm(false);
+      });
+  };
+
   return (
-    <div className="flex items-center gap-4">
-      <Button
-        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-black hover:scale-105 active:scale-95 transition-transform"
-        type="button"
-        onClick={() => {
-          form.reset();
-          resetFounders();
-          resetLogoPreview();
-        }}
-      >
-        <span className="iconify ph--arrow-counter-clockwise-bold w-5 h-5" />
-        <span>Reset</span>
-      </Button>
-      <Button
-        className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
-        type="submit"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? (
-          <>
-            <span className="iconify ph--spinner w-5 h-5 animate-spin" />
-            <span>Creating Token...</span>
-          </>
-        ) : (
-          <>
-            <span className="iconify ph--rocket-bold w-5 h-5" />
-            <span>Create Token</span>
-          </>
-        )}
-      </Button>
-    </div>
+    <>
+      <div className="flex items-center gap-4">
+        <Button
+          className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-black hover:scale-105 active:scale-95 transition-transform"
+          type="button"
+          onClick={() => {
+            form.reset();
+            resetFounders();
+            resetLogoPreview();
+          }}
+        >
+          <span className="iconify ph--arrow-counter-clockwise-bold w-5 h-5" />
+          <span>Reset</span>
+        </Button>
+        <Button
+          className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <span className="iconify ph--spinner w-5 h-5 animate-spin" />
+              <span>Creating Token...</span>
+            </>
+          ) : (
+            <>
+              <span className="iconify ph--rocket-bold w-5 h-5" />
+              <span>Create Token</span>
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Token Preview Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="bg-black text-white border border-[#1c4d3e] sm:max-w-[550px] p-6">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-2xl font-bold text-center">
+              Create Token Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 max-h-[50vh] overflow-y-auto">
+            <TokenPreview form={form} />
+          </div>
+          <DialogFooter className="flex gap-6 justify-center pt-4">
+            <Button
+              onClick={() => setShowPreviewModal(false)}
+              className="flex gap-2 bg-gradient-to-r from-red-500 to-black hover:scale-105 active:scale-95 transition-transform"
+            >
+              <span className="iconify ph--x-circle-bold w-5 h-5" />
+              <span>Cancel</span>
+            </Button>
+            <Button
+              onClick={handleConfirmSubmit}
+              className="flex gap-2 hover:scale-105 active:scale-95 transition-transform"
+              disabled={isSubmittingForm}
+            >
+              {isSubmittingForm ? (
+                <>
+                  <span className="iconify ph--spinner w-5 h-5 animate-spin" />
+                  <span>Creating Token...</span>
+                </>
+              ) : (
+                <>
+                  <span className="iconify ph--rocket-bold w-5 h-5" />
+                  <span>Reviewed, Launch Now!</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
@@ -692,5 +809,88 @@ const TokenCreationSuccess = () => {
         </div>
       </div>
     </>
+  );
+};
+
+const TokenPreview = ({ form }: { form: any }) => {
+  const formValues = form.state.values;
+  const logoPreview =
+    form.state.values.tokenLogo instanceof File
+      ? URL.createObjectURL(form.state.values.tokenLogo)
+      : null;
+
+  return (
+    <div className="space-y-6">
+      <div className="border border-white/10 rounded-lg p-4">
+        <h3 className="text-xl font-bold mb-3">Token Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-neutral-400">Name:</p>
+            <p className="font-medium">{formValues.tokenName || 'Not specified'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-neutral-400">Symbol:</p>
+            <p className="font-medium">{formValues.tokenSymbol || 'Not specified'}</p>
+          </div>
+          {logoPreview && (
+            <div className="col-span-2 flex justify-center">
+              <div className="text-center">
+                <p className="text-sm text-neutral-400 mb-2">Logo:</p>
+                <img
+                  src={logoPreview}
+                  alt="Token Logo"
+                  className="w-16 h-16 object-contain rounded"
+                />
+              </div>
+            </div>
+          )}
+          <div className="col-span-2">
+            <p className="text-sm text-neutral-400">Description:</p>
+            <p className="font-medium">{formValues.description || 'Not specified'}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-white/10 rounded-lg p-4">
+        <h3 className="text-xl font-bold mb-3">Founder Information</h3>
+        {formValues.founders?.map((founder: any, index: number) => (
+          <div key={index} className="mb-3 border border-white/5 rounded p-3">
+            <p className="text-md font-medium">Founder {index + 1}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              <div>
+                <p className="text-sm text-neutral-400">Name:</p>
+                <p className="font-medium">{founder.name || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">X Profile:</p>
+                <p className="font-medium">{founder.twitter || 'Not specified'}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="border border-white/10 rounded-lg p-4">
+        <h3 className="text-xl font-bold mb-3">Social Links</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-neutral-400">Website:</p>
+            <p className="font-medium truncate">{formValues.website || 'Not specified'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-neutral-400">X Profile:</p>
+            <p className="font-medium truncate">{formValues.twitter || 'Not specified'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-neutral-400">Telegram:</p>
+            <p className="font-medium truncate">{formValues.telegram || 'Not specified'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-neutral-400">LinkedIn:</p>
+            <p className="font-medium truncate">{formValues.linkedin || 'Not specified'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

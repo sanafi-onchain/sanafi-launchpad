@@ -77,6 +77,8 @@ export default function CreateToken() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [tokenCreated, setTokenCreated] = useState(false);
+  const [tokenMint, setTokenMint] = useState<string>('');
+  const [createdTokenSymbol, setCreatedTokenSymbol] = useState<string>('');
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [founders, setFounders] = useState<FounderInfo[]>([{ name: '', twitter: '' }]);
@@ -99,55 +101,48 @@ export default function CreateToken() {
     onSubmit: async ({ value }) => {
       try {
         setIsLoading(true);
+
+        // Validate token logo
         const { tokenLogo } = value;
         if (!tokenLogo) {
           toast.error('Token logo is required');
           return;
         }
 
+        // Check if wallet is connected
         if (!signTransaction) {
-          toast.error('Wallet not connected');
+          toast.error('Wallet is not connected yet');
           return;
         }
 
-        const reader = new FileReader();
-
-        // Convert file to base64
-        const base64File = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(tokenLogo);
-        });
-
         const keyPair = Keypair.generate();
+        const mint = keyPair.publicKey.toBase58();
 
-        // Step 1: Upload to R2 and get transaction
+        // Step 1: Create FormData for efficient file upload
+        const formData = new FormData();
+        formData.append('tokenLogo', tokenLogo);
+        formData.append('mint', mint);
+        formData.append('tokenName', value.tokenName);
+        formData.append('tokenSymbol', value.tokenSymbol);
+        formData.append('description', value.description);
+        formData.append('website', value.website);
+        formData.append('twitter', value.twitter);
+        formData.append('telegram', value.telegram || '');
+        formData.append('linkedin', value.linkedin || '');
+        formData.append('founders', JSON.stringify(value.founders));
+        formData.append('userWallet', address!);
+
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tokenLogo: base64File,
-            mint: keyPair.publicKey.toBase58(),
-            tokenName: value.tokenName,
-            tokenSymbol: value.tokenSymbol,
-            description: value.description,
-            website: value.website,
-            twitter: value.twitter,
-            telegram: value.telegram,
-            linkedin: value.linkedin,
-            founders: value.founders,
-            userWallet: address,
-          }),
+          body: formData, // No Content-Type header needed for FormData
         });
-
         if (!uploadResponse.ok) {
           const error = await uploadResponse.json();
           throw new Error(error.error);
         }
 
         const uploadResult = await uploadResponse.json();
-        const { poolTx } = uploadResult;
+        const { poolTx, lastValidBlockHeight, recentBlockhash } = uploadResult;
         const transaction = Transaction.from(Buffer.from(poolTx, 'base64'));
 
         // Step 2: Sign with keypair first
@@ -164,9 +159,10 @@ export default function CreateToken() {
           },
           body: JSON.stringify({
             signedTransaction: signedTransaction.serialize().toString('base64'),
+            recentBlockhash,
+            lastValidBlockHeight,
           }),
         });
-
         if (!sendResponse.ok) {
           const error = await sendResponse.json();
           throw new Error(error.error);
@@ -175,6 +171,9 @@ export default function CreateToken() {
         const { success } = await sendResponse.json();
         if (success) {
           toast.success('Token created successfully');
+          // Store the mint address and token symbol for use in the success page
+          setTokenMint(mint);
+          setCreatedTokenSymbol(value.tokenSymbol);
           setTokenCreated(true);
         }
       } catch (error) {
@@ -213,7 +212,7 @@ export default function CreateToken() {
           </div>
 
           {tokenCreated && !isLoading ? (
-            <TokenCreationSuccess />
+            <TokenCreationSuccess tokenMint={tokenMint} tokenSymbol={createdTokenSymbol} />
           ) : (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-8" ref={formRef}>
               {/* Loading Overlay */}
@@ -776,7 +775,13 @@ const SubmitButton = ({
   );
 };
 
-const TokenCreationSuccess = () => {
+const TokenCreationSuccess = ({
+  tokenMint,
+  tokenSymbol,
+}: {
+  tokenMint: string;
+  tokenSymbol: string;
+}) => {
   return (
     <>
       <div className="bg-white/5 rounded-xl p-8 backdrop-blur-sm border border-white/10 text-center">
@@ -789,11 +794,19 @@ const TokenCreationSuccess = () => {
           trade your tokens.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
+          {/* <Link
             href="/"
             className="bg-white/10 px-6 py-3 rounded-xl font-medium hover:bg-white/20 hover:scale-105 active:scale-95 transition-all"
           >
             Explore Tokens
+          </Link> */}
+          <Link
+            href={`https://jup.ag/tokens/${tokenMint}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white/10 px-6 py-3 rounded-xl font-medium hover:bg-white/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            View your ${tokenSymbol} on Jupiter
           </Link>
           <button
             onClick={() => {

@@ -1,64 +1,49 @@
-FROM node:20-alpine AS base
+FROM node:23-alpine
 
-# Set Next.js environment variables
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-
-# Install dependencies only when needed
-FROM base AS deps
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install system dependencies including curl for health checks
+RUN apk add --no-cache libc6-compat curl
 
-# Copy package.json files
-COPY package.json pnpm-lock.yaml ./
+# Set up pnpm properly
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install dependencies - use production dependencies only
-RUN pnpm install --frozen-lockfile --prod=false
+# Copy package files
+COPY package.json pnpm-lock.yaml* ./
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Install production dependencies
+RUN pnpm install --prod --frozen-lockfile
+
+# Copy the pre-built Next.js app
+COPY .next ./.next
+COPY public ./public
+COPY next.config.js* ./
+COPY next.config.ts* ./
+
+# Copy environment file if it exists (optional)
+COPY .env.production* .env.staging* ./
+
+# Verify the build was copied correctly
+RUN echo "Checking .next directory..." && ls -la .next/ | head -5
 
 # Set environment variables
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV PORT=3013
+ENV NODE_ENV=production
+ENV HOSTNAME="0.0.0.0"
 
-# Build the application
-RUN npm install -g pnpm
-# Set environment variable to ignore ESLint during build
-ENV ESLINT_DISABLE_DEV_WARNING=true
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_IGNORE_ESLINT_WARNING=1
+# Add your Next.js environment variables here
+# ENV NEXT_PUBLIC_POOL_CONFIG_KEY=your_value
+# ENV NEXT_PUBLIC_API_URL=your_api_url
+# ENV OTHER_ENV_VAR=your_value
 
-# Build with ESLint checking disabled
-RUN pnpm build || (echo "Build failed with ESLint errors, retrying with ESLint disabled" && NEXT_DISABLE_ESLINT=1 pnpm build)
+# Expose the port
+EXPOSE 3013
 
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
+# Add health check (using environment variable for port)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:$PORT || exit 1
 
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy necessary files from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-# Expose the port the app will run on
-EXPOSE 3012
-
-# Set environment variables for the container
-ENV PORT 3012
-ENV HOSTNAME "0.0.0.0"
-
-# Start the application
-CMD ["node", "server.js"]
+# Start the application directly with pnpm
+CMD ["pnpm", "start"]

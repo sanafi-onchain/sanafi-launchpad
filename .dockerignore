@@ -10,14 +10,19 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Next.js
-.next
+# Next.js (excluding .next since we need it for production builds)
+# .next  # Commented out - we need this for production Docker builds
 out
 
 # Environment variables
 .env
 .env.*
+!.env.production
+!.env.staging
 !.env.docker.example
+
+# Deployment directory (except needed files)
+deployments/
 
 # Build files
 build

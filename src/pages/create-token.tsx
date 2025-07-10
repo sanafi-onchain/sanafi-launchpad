@@ -770,6 +770,43 @@ const SubmitButton = ({
           </DialogHeader>
           <div className="py-4 max-h-[50vh] overflow-y-auto">
             <TokenPreview form={form} />
+
+            {/* Terms & Conditions Section */}
+            <div className="border border-white/10 rounded-lg p-4 mt-6 bg-yellow-500/10">
+              <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span className="iconify ph--warning-bold w-5 h-5 text-yellow-500" />
+                Terms & Conditions
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-300">
+                    Must hold at least{' '}
+                    <span className="font-semibold text-white">
+                      {new Intl.NumberFormat().format(1000000)} SANA
+                    </span>{' '}
+                    tokens to create a new token on this platform
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-300">
+                    All token information must be accurate and comply with platform guidelines
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-300">
+                    Token creation fees are non-refundable once the transaction is confirmed
+                  </p>
+                </div>
+                {/* Future T&C points can be added here */}
+              </div>
+              <p className="text-xs text-gray-400 mt-4 border-t border-white/10 pt-3">
+                By proceeding, you acknowledge that you meet all the above requirements and agree to
+                our terms of service.
+              </p>
+            </div>
           </div>
           <DialogFooter className="flex gap-6 justify-center pt-4">
             <Button

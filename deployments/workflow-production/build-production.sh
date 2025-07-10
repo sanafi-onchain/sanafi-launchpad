@@ -3,12 +3,17 @@
 
 set -e
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
 # Load configuration
-if [ -f "../configuration/deploy.config" ]; then
-  source ../configuration/deploy.config
+CONFIG_FILE="${SCRIPT_DIR}/../configuration/deploy.config"
+if [ -f "${CONFIG_FILE}" ]; then
+  source "${CONFIG_FILE}"
 else
   echo "❌ Error: deploy.config file not found!"
-  echo "Expected location: deployments/configuration/deploy.config"
+  echo "Expected location: ${CONFIG_FILE}"
   exit 1
 fi
 
@@ -26,42 +31,42 @@ echo "Node version: ${NODE_VERSION}"
 echo ""
 
 # Check if production environment file exists
-if [ ! -f "../../.env.production" ]; then
+if [ ! -f "${PROJECT_ROOT}/.env.production" ]; then
   echo "❌ Error: .env.production not found!"
-  echo "💡 Copy from example: cp ../configuration/.env.production.example ../../.env.production"
+  echo "💡 Copy from example: cp deployments/configuration/.env.production.example .env.production"
   echo "   Then edit with your production values."
   exit 1
 fi
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
-rm -rf ../../.next
+rm -rf "${PROJECT_ROOT}/.next"
 
 # Production environment file should already be named correctly
-echo "✅ Using production environment variables (../../.env.production)"
+echo "✅ Using production environment variables (${PROJECT_ROOT}/.env.production)"
 
 # Build Next.js application
 echo "⚡ Building Next.js application for production..."
-cd ../../
+cd "${PROJECT_ROOT}"
 pnpm build
-cd deployments/workflow-production
+cd "${SCRIPT_DIR}"
 
 # Check if build was successful
-if [ ! -d "../../.next" ]; then
+if [ ! -d "${PROJECT_ROOT}/.next" ]; then
   echo "❌ Error: Next.js build failed!"
   exit 1
 fi
 
 echo "✅ Next.js build completed successfully!"
 echo "🔍 Checking .next directory..."
-ls -la ../../.next/ | head -5
+ls -la "${PROJECT_ROOT}/.next/" | head -5
 echo ""
 
 # Build Docker image for production
 echo "🐳 Building Docker image for production (linux/amd64)..."
-cd ../../
+cd "${PROJECT_ROOT}"
 docker build --platform linux/amd64 -t "${IMAGE_NAME}:${TAG}" -t "${FULL_IMAGE_NAME}" .
-cd deployments/workflow-production
+cd "${SCRIPT_DIR}"
 
 if [ $? -eq 0 ]; then
   echo "✅ Production Docker image built successfully!"

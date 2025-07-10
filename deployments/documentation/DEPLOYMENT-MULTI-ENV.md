@@ -38,13 +38,15 @@ DOCKER_HUB_USERNAME="reviart18"  # Your username
 
 ```bash
 # Create staging environment
-cp .env.staging.example .env.staging
+cp deployments/configuration/.env.staging.example .env.staging
 # Edit .env.staging with staging values
 
 # Create production environment
-cp .env.production.example .env.production
+cp deployments/configuration/.env.production.example .env.production
 # Edit .env.production with production values
 ```
+
+> **🔒 Security Note:** Environment files (`.env.staging`, `.env.production`) are automatically ignored by git and will not be pushed to your repository.
 
 ## 🚀 Staging Deployment Workflow
 

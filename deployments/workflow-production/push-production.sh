@@ -3,12 +3,17 @@
 
 set -e
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
 # Load configuration
-if [ -f "../configuration/deploy.config" ]; then
-  source ../configuration/deploy.config
+CONFIG_FILE="${SCRIPT_DIR}/../configuration/deploy.config"
+if [ -f "${CONFIG_FILE}" ]; then
+  source "${CONFIG_FILE}"
 else
   echo "❌ Error: deploy.config file not found!"
-  echo "Expected location: deployments/configuration/deploy.config"
+  echo "Expected location: ${CONFIG_FILE}"
   exit 1
 fi
 

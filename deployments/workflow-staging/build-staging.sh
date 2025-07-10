@@ -3,12 +3,17 @@
 
 set -e
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
 # Load configuration
-if [ -f "../configuration/deploy.config" ]; then
-  source ../configuration/deploy.config
+CONFIG_FILE="${SCRIPT_DIR}/../configuration/deploy.config"
+if [ -f "${CONFIG_FILE}" ]; then
+  source "${CONFIG_FILE}"
 else
   echo "❌ Error: deploy.config file not found!"
-  echo "Expected location: deployments/configuration/deploy.config"
+  echo "Expected location: ${CONFIG_FILE}"
   exit 1
 fi
 
@@ -26,9 +31,9 @@ echo "Node version: ${NODE_VERSION}"
 echo ""
 
 # Check if staging environment file exists
-if [ ! -f "../../.env.staging" ]; then
+if [ ! -f "${PROJECT_ROOT}/.env.staging" ]; then
   echo "⚠️  Warning: .env.staging not found!"
-  echo "💡 Copy from example: cp ../configuration/.env.staging.example ../../.env.staging"
+  echo "💡 Copy from example: cp deployments/configuration/.env.staging.example .env.staging"
   echo "   Then edit with your staging values."
   read -p "Continue without .env.staging? (y/n): " CONTINUE
   if [[ $CONTINUE != "y" && $CONTINUE != "Y" ]]; then
@@ -38,36 +43,42 @@ fi
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
-rm -rf ../../.next
+rm -rf "${PROJECT_ROOT}/.next"
 
-# Copy staging environment file
-if [ -f "../../.env.staging" ]; then
-  cp ../../.env.staging ../../.env.production
-  echo "✅ Using staging environment variables"
+# Copy staging environment file for build
+if [ -f "${PROJECT_ROOT}/.env.staging" ]; then
+  # Create a temporary production env file for this build
+  cp "${PROJECT_ROOT}/.env.staging" "${PROJECT_ROOT}/.env.production.tmp"
+  mv "${PROJECT_ROOT}/.env.production.tmp" "${PROJECT_ROOT}/.env.production"
+  echo "✅ Using staging environment variables for build"
+  CLEANUP_ENV_FILE=true
+else
+  echo "⚠️  Building without specific staging environment variables"
+  CLEANUP_ENV_FILE=false
 fi
 
 # Build Next.js application
 echo "⚡ Building Next.js application for staging..."
-cd ../../
+cd "${PROJECT_ROOT}"
 pnpm build
-cd deployments/workflow-staging
+cd "${SCRIPT_DIR}"
 
 # Check if build was successful
-if [ ! -d "../../.next" ]; then
+if [ ! -d "${PROJECT_ROOT}/.next" ]; then
   echo "❌ Error: Next.js build failed!"
   exit 1
 fi
 
 echo "✅ Next.js build completed successfully!"
 echo "🔍 Checking .next directory..."
-ls -la ../../.next/ | head -5
+ls -la "${PROJECT_ROOT}/.next/" | head -5
 echo ""
 
 # Build Docker image for staging
 echo "🐳 Building Docker image for staging (linux/amd64)..."
-cd ../../
+cd "${PROJECT_ROOT}"
 docker build --platform linux/amd64 -t "${IMAGE_NAME}:${TAG}" -t "${FULL_IMAGE_NAME}" .
-cd deployments/workflow-staging
+cd "${SCRIPT_DIR}"
 
 if [ $? -eq 0 ]; then
   echo "✅ Staging Docker image built successfully!"
@@ -113,7 +124,20 @@ if [ $? -eq 0 ]; then
   echo "🚀 Ready to push staging image to Docker Hub!"
   echo "Run: ./push-staging.sh"
   
+  # Cleanup temporary environment file
+  if [ "$CLEANUP_ENV_FILE" = true ] && [ -f "${PROJECT_ROOT}/.env.production" ]; then
+    rm -f "${PROJECT_ROOT}/.env.production"
+    echo "🧹 Cleaned up temporary environment file"
+  fi
+  
 else
   echo "❌ Docker build failed!"
+  
+  # Cleanup on failure too
+  if [ "$CLEANUP_ENV_FILE" = true ] && [ -f "${PROJECT_ROOT}/.env.production" ]; then
+    rm -f "${PROJECT_ROOT}/.env.production"
+    echo "🧹 Cleaned up temporary environment file"
+  fi
+  
   exit 1
 fi

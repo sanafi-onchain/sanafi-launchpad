@@ -10,18 +10,18 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Next.js (excluding .next since we need it for production builds)
-# .next  # Commented out - we need this for production Docker builds
+# Next.js build output (we need .next for production builds)
+# .next  # Commented out - we need this for our optimized Docker build
 out
 
-# Environment variables
+# Environment variables (except the ones we need)
 .env
 .env.*
 !.env.production
 !.env.staging
 !.env.docker.example
 
-# Deployment directory (except needed files)
+# Deployment directory
 deployments/
 
 # Build files
@@ -32,15 +32,24 @@ dist
 .git
 .gitignore
 
-# IDE
+# IDE and development
 .idea
 .vscode
 *.sublime-project
 *.sublime-workspace
 
-# Misc
+# Testing
+coverage
+jest.config.js
+**/*.test.*
+**/*.spec.*
+__tests__/
+
+# Misc development files
 .DS_Store
 *.pem
-coverage
 README.md
 **/README.md
+*.log
+.eslintcache
+.turbo

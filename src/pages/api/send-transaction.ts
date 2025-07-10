@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, Keypair, sendAndConfirmRawTransaction, Transaction } from '@solana/web3.js';
+import { Connection, Keypair, Transaction } from '@solana/web3.js';
 
 const RPC_URL = process.env.RPC_URL as string;
 

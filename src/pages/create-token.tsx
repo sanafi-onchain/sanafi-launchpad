@@ -14,7 +14,7 @@ import {
 import { useForm } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
 import { Keypair, Transaction } from '@solana/web3.js';
-import { useUnifiedWalletContext, useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@jup-ag/wallet-adapter';
 import { toast } from 'sonner';
 
 // Define the schema for form validation
@@ -636,6 +636,7 @@ export default function CreateToken() {
                   form={form}
                   resetFounders={() => setFounders([{ name: '', twitter: '' }])}
                   resetLogoPreview={() => setLogoPreview(null)}
+                  address={address}
                 />
               </div>
             </form>
@@ -651,11 +652,13 @@ const SubmitButton = ({
   form,
   resetFounders,
   resetLogoPreview,
+  address,
 }: {
   isSubmitting: boolean;
   form: any;
   resetFounders: () => void;
   resetLogoPreview: () => void;
+  address: string | undefined;
 }) => {
   const { publicKey } = useWallet();
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -682,19 +685,44 @@ const SubmitButton = ({
     setShowPreviewModal(true);
   };
 
-  const handleConfirmSubmit = () => {
-    setShowPreviewModal(false);
+  const handleConfirmSubmit = async () => {
     // Call the form's submit handler and handle loading state
     setIsSubmittingForm(true);
-    form
-      .handleSubmit()
-      .catch((error) => {
-        console.error('Form submission error:', error);
-        toast.error('Failed to create token');
-      })
-      .finally(() => {
-        setIsSubmittingForm(false);
+
+    try {
+      // Validate balance - check if user has sufficient balance
+      const validationResponse = await fetch('/api/create-token-validation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address,
+        }),
       });
+      const validationResult = await validationResponse.json();
+      if (!validationResult.success) {
+        toast.error(validationResult.message || 'Validation failed', { duration: 5000 });
+        setIsSubmittingForm(false);
+        return;
+      }
+
+      // If validation passes, proceed with form submission
+      form
+        .handleSubmit()
+        .catch((error) => {
+          console.error('Form submission error:', error);
+          toast.error('Failed to create token');
+        })
+        .finally(() => {
+          setShowPreviewModal(false);
+          setIsSubmittingForm(false);
+        });
+    } catch (error) {
+      console.error('Validation request error:', error);
+      toast.error('Failed to validate token creation requirements');
+      setIsSubmittingForm(false);
+    }
   };
 
   return (

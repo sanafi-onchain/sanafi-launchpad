@@ -738,7 +738,7 @@ const SubmitButton = ({
     <>
       <div className="flex items-center gap-4">
         <Button
-          className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-[#0f172a] hover:scale-105 active:scale-95 transition-transform text-white"
+          className="flex items-center gap-2 bg-red-500 hover:bg-red-600 hover:scale-105 active:scale-95 transition-transform"
           type="button"
           onClick={() => {
             form.reset();
@@ -771,7 +771,7 @@ const SubmitButton = ({
         </Button> */}
 
         <Button
-          className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform text-white"
+          className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
@@ -841,13 +841,13 @@ const SubmitButton = ({
           <DialogFooter className="flex gap-2 justify-center pt-4">
             <Button
               onClick={() => setShowPreviewModal(false)}
-              className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center"
+              className="px-6 py-3 bg-red-500 hover:bg-red-600 rounded-full transition-colors flex items-center"
             >
               <span className="ml-2">Cancel</span>
             </Button>
             <Button
               onClick={handleConfirmSubmit}
-              className="px-6 py-3 bg-primary hover:bg-primary/90 text-black rounded-lg transition-colors flex items-center"
+              className="px-6 py-3 bg-primary hover:bg-primary/90 text-black rounded-full transition-colors flex items-center"
               disabled={isSubmittingForm}
             >
               {isSubmittingForm ? (
@@ -906,7 +906,7 @@ const TokenCreationSuccess = ({
             onClick={() => {
               window.location.reload();
             }}
-            className="cursor-pointer bg-gradient-to-r from-primary to-[#0f172a] px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all text-white"
+            className="cursor-pointer bg-primary px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all text-black"
           >
             Create Another Token
           </button>

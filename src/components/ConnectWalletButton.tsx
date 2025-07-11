@@ -33,14 +33,14 @@ export const ConnectWalletButton = ({ className }: ConnectWalletButtonProps) => 
       {address ? (
         <Button
           onClick={handleDisconnect}
-          className="hover:scale-105 active:scale-95 transition-transform text-white"
+          className="hover:scale-105 active:scale-95 transition-transform"
         >
           {shortenAddress(address)}
         </Button>
       ) : (
         <Button
           onClick={handleConnectWallet}
-          className="hover:scale-105 active:scale-95 transition-transform text-white"
+          className="hover:scale-105 active:scale-95 transition-transform"
         >
           <span className="hidden md:block">Connect Wallet</span>
           <span className="block md:hidden">Connect</span>
@@ -59,13 +59,13 @@ export const ConnectWalletButton = ({ className }: ConnectWalletButtonProps) => 
           <DialogFooter className="flex gap-6 justify-center pt-4">
             <Button
               onClick={() => setShowLogoutConfirm(false)}
-              className="bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all px-6 text-white"
+              className="bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all px-6"
             >
               Cancel
             </Button>
             <Button
               onClick={confirmDisconnect}
-              className="bg-gradient-to-r from-primary to-[#0f172a] hover:scale-105 active:scale-95 transition-all px-6 text-white"
+              className="hover:scale-105 active:scale-95 transition-all px-6"
             >
               Yes, Disconnect
             </Button>

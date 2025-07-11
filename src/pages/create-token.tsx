@@ -637,6 +637,9 @@ export default function CreateToken() {
                   resetFounders={() => setFounders([{ name: '', twitter: '' }])}
                   resetLogoPreview={() => setLogoPreview(null)}
                   address={address}
+                  setTokenCreated={setTokenCreated}
+                  setTokenMint={setTokenMint}
+                  setCreatedTokenSymbol={setCreatedTokenSymbol}
                 />
               </div>
             </form>
@@ -653,12 +656,18 @@ const SubmitButton = ({
   resetFounders,
   resetLogoPreview,
   address,
+  setTokenCreated,
+  setTokenMint,
+  setCreatedTokenSymbol,
 }: {
   isSubmitting: boolean;
   form: any;
   resetFounders: () => void;
   resetLogoPreview: () => void;
   address: string | undefined;
+  setTokenCreated: (value: boolean) => void;
+  setTokenMint: (value: string) => void;
+  setCreatedTokenSymbol: (value: string) => void;
 }) => {
   const { publicKey } = useWallet();
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -740,6 +749,27 @@ const SubmitButton = ({
           <span className="iconify ph--arrow-counter-clockwise-bold w-5 h-5" />
           <span>Reset</span>
         </Button>
+
+        {/* This button is for testing TokenCreationSuccess only */}
+        {/* <Button
+          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+          type="button"
+          onClick={() => {
+            // Set dummy data for testing
+            form.setFieldValue('tokenName', 'Test Token');
+            form.setFieldValue('tokenSymbol', 'TEST');
+            // Trigger success modal
+            setTimeout(() => {
+              setTokenCreated(true);
+              setTokenMint('TestMint123456789');
+              setCreatedTokenSymbol('TEST');
+            }, 100);
+          }}
+        >
+          <span className="iconify ph--test-tube-bold w-5 h-5" />
+          <span>Test Success</span>
+        </Button> */}
+
         <Button
           className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform text-white"
           type="button"
@@ -808,28 +838,27 @@ const SubmitButton = ({
               </p>
             </div>
           </div>
-          <DialogFooter className="flex gap-6 justify-center pt-4">
+          <DialogFooter className="flex gap-2 justify-center pt-4">
             <Button
               onClick={() => setShowPreviewModal(false)}
-              className="flex gap-2 bg-gradient-to-r from-red-500 to-[#0f172a] hover:scale-105 active:scale-95 transition-transform text-white"
+              className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center"
             >
-              <span className="iconify ph--x-circle-bold w-5 h-5" />
-              <span>Cancel</span>
+              <span className="ml-2">Cancel</span>
             </Button>
             <Button
               onClick={handleConfirmSubmit}
-              className="flex gap-2 hover:scale-105 active:scale-95 transition-transform text-white"
+              className="px-6 py-3 bg-primary hover:bg-primary/90 text-black rounded-lg transition-colors flex items-center"
               disabled={isSubmittingForm}
             >
               {isSubmittingForm ? (
                 <>
                   <span className="iconify ph--spinner w-5 h-5 animate-spin" />
-                  <span>Creating Token...</span>
+                  <span className="ml-2">Creating Token...</span>
                 </>
               ) : (
                 <>
-                  <span className="iconify ph--rocket-bold w-5 h-5" />
                   <span>Reviewed, Launch Now!</span>
+                  <span className="iconify ph--rocket-bold w-5 h-5 ml-2" />
                 </>
               )}
             </Button>
@@ -896,72 +925,78 @@ const TokenPreview = ({ form }: { form: any }) => {
 
   return (
     <div className="space-y-6">
-      <div className="border border-white/10 rounded-lg p-4">
-        <h3 className="text-xl font-bold mb-3">Token Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-neutral-400">Name:</p>
-            <p className="font-medium">{formValues.tokenName || 'Not specified'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-neutral-400">Symbol:</p>
-            <p className="font-medium">{formValues.tokenSymbol || 'Not specified'}</p>
-          </div>
-          {logoPreview && (
-            <div className="col-span-2 flex justify-center">
-              <div className="text-center">
-                <p className="text-sm text-neutral-400 mb-2">Logo:</p>
-                <img
-                  src={logoPreview}
-                  alt="Token Logo"
-                  className="w-16 h-16 object-contain rounded"
-                />
+      <div className="border border-white/10 rounded-lg p-6 bg-white/5">
+        <h3 className="text-xl font-bold mb-4 text-center">Token Details</h3>
+
+        {/* Logo Section */}
+        {logoPreview && (
+          <div className="flex justify-center mb-6">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-2 rounded-lg overflow-hidden bg-white/10 flex items-center justify-center">
+                <img src={logoPreview} alt="Token Logo" className="w-full h-full object-contain" />
               </div>
+              <p className="text-xs text-neutral-400">Token Logo</p>
             </div>
-          )}
-          <div className="col-span-2">
-            <p className="text-sm text-neutral-400">Description:</p>
-            <p className="font-medium">{formValues.description || 'Not specified'}</p>
           </div>
+        )}
+
+        {/* Token Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-sm text-neutral-400 mb-1">Token Name</p>
+            <p className="font-semibold text-lg">{formValues.tokenName || 'Not specified'}</p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-sm text-neutral-400 mb-1">Symbol</p>
+            <p className="font-semibold text-lg">{formValues.tokenSymbol || 'Not specified'}</p>
+          </div>
+        </div>
+
+        {/* Description Section */}
+        <div className="mt-6 bg-white/5 rounded-lg p-4">
+          <p className="text-sm text-neutral-400 mb-2">Description</p>
+          <p className="font-medium leading-relaxed">{formValues.description || 'Not specified'}</p>
         </div>
       </div>
 
-      <div className="border border-white/10 rounded-lg p-4">
-        <h3 className="text-xl font-bold mb-3">Founder Information</h3>
-        {formValues.founders?.map((founder: any, index: number) => (
-          <div key={index} className="mb-3 border border-white/5 rounded p-3">
-            <p className="text-md font-medium">Founder {index + 1}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-              <div>
-                <p className="text-sm text-neutral-400">Name:</p>
-                <p className="font-medium">{founder.name || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-400">X Profile:</p>
-                <p className="font-medium">{founder.twitter || 'Not specified'}</p>
+      <div className="border border-white/10 rounded-lg p-6 bg-white/5">
+        <h3 className="text-xl font-bold mb-4 text-center">Founder Information</h3>
+        <div className="space-y-4">
+          {formValues.founders?.map((founder: any, index: number) => (
+            <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <p className="text-md font-semibold mb-3 text-center">Founder {index + 1}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-sm text-neutral-400 mb-1">Name</p>
+                  <p className="font-medium">{founder.name || 'Not specified'}</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-sm text-neutral-400 mb-1">X Profile</p>
+                  <p className="font-medium">{founder.twitter || 'Not specified'}</p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <div className="border border-white/10 rounded-lg p-4">
-        <h3 className="text-xl font-bold mb-3">Social Links</h3>
+      <div className="border border-white/10 rounded-lg p-6 bg-white/5">
+        <h3 className="text-xl font-bold mb-4 text-center">Social Links</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-neutral-400">Website:</p>
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-sm text-neutral-400 mb-1">Website</p>
             <p className="font-medium truncate">{formValues.website || 'Not specified'}</p>
           </div>
-          <div>
-            <p className="text-sm text-neutral-400">X Profile:</p>
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-sm text-neutral-400 mb-1">X Profile</p>
             <p className="font-medium truncate">{formValues.twitter || 'Not specified'}</p>
           </div>
-          <div>
-            <p className="text-sm text-neutral-400">Telegram:</p>
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-sm text-neutral-400 mb-1">Telegram</p>
             <p className="font-medium truncate">{formValues.telegram || 'Not specified'}</p>
           </div>
-          <div>
-            <p className="text-sm text-neutral-400">LinkedIn:</p>
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-sm text-neutral-400 mb-1">LinkedIn</p>
             <p className="font-medium truncate">{formValues.linkedin || 'Not specified'}</p>
           </div>
         </div>

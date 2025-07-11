@@ -198,7 +198,7 @@ export default function CreateToken() {
         />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-b text-white">
+      <div className="min-h-screen bg-background text-foreground">
         {/* Header */}
         <Header />
 
@@ -729,7 +729,7 @@ const SubmitButton = ({
     <>
       <div className="flex items-center gap-4">
         <Button
-          className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-black hover:scale-105 active:scale-95 transition-transform"
+          className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-[#0f172a] hover:scale-105 active:scale-95 transition-transform text-white"
           type="button"
           onClick={() => {
             form.reset();
@@ -741,7 +741,7 @@ const SubmitButton = ({
           <span>Reset</span>
         </Button>
         <Button
-          className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+          className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform text-white"
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
@@ -762,7 +762,7 @@ const SubmitButton = ({
 
       {/* Token Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="bg-black text-white border border-[#1c4d3e] sm:max-w-[550px] p-6">
+        <DialogContent className="bg-card text-card-foreground border border-border sm:max-w-[550px] p-6">
           <DialogHeader className="mb-2">
             <DialogTitle className="text-2xl font-bold text-center">
               Create Token Preview
@@ -811,14 +811,14 @@ const SubmitButton = ({
           <DialogFooter className="flex gap-6 justify-center pt-4">
             <Button
               onClick={() => setShowPreviewModal(false)}
-              className="flex gap-2 bg-gradient-to-r from-red-500 to-black hover:scale-105 active:scale-95 transition-transform"
+              className="flex gap-2 bg-gradient-to-r from-red-500 to-[#0f172a] hover:scale-105 active:scale-95 transition-transform text-white"
             >
               <span className="iconify ph--x-circle-bold w-5 h-5" />
               <span>Cancel</span>
             </Button>
             <Button
               onClick={handleConfirmSubmit}
-              className="flex gap-2 hover:scale-105 active:scale-95 transition-transform"
+              className="flex gap-2 hover:scale-105 active:scale-95 transition-transform text-white"
               disabled={isSubmittingForm}
             >
               {isSubmittingForm ? (
@@ -877,7 +877,7 @@ const TokenCreationSuccess = ({
             onClick={() => {
               window.location.reload();
             }}
-            className="cursor-pointer bg-gradient-to-r from-[#1c4d3e] to-black-500 px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
+            className="cursor-pointer bg-gradient-to-r from-primary to-[#0f172a] px-6 py-3 rounded-xl font-medium hover:opacity-90 hover:scale-105 active:scale-95 transition-all text-white"
           >
             Create Another Token
           </button>

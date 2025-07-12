@@ -12,7 +12,7 @@ export const Header = () => {
         {/* Logo Section */}
         <Link href="/" className="flex items-center">
           <h1 className="whitespace-nowrap text-lg md:text-2xl font-bold">
-            Sanafi - Ethical Project Launchpad
+            Ethics - Ethical Project Launchpad
           </h1>
         </Link>
 

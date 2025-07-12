@@ -59,7 +59,7 @@ export const ConnectWalletButton = ({ className }: ConnectWalletButtonProps) => 
           <DialogFooter className="flex gap-6 justify-center pt-4">
             <Button
               onClick={() => setShowLogoutConfirm(false)}
-              className="bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all px-6"
+              className="bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all px-6 text-white"
             >
               Cancel
             </Button>

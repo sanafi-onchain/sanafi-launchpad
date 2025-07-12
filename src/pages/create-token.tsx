@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { z } from 'zod';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import { ConnectWalletButton } from '../components/ConnectWalletButton';
 import {
   Dialog,
@@ -198,12 +199,12 @@ export default function CreateToken() {
         />
       </Head>
 
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         {/* Header */}
         <Header />
 
         {/* Page Content */}
-        <main className="container mx-auto px-4 py-10">
+        <main className="container mx-auto px-4 py-10 flex-1">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
               <h1 className="text-4xl font-bold mb-2">Create Token</h1>
@@ -645,6 +646,9 @@ export default function CreateToken() {
             </form>
           )}
         </main>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </>
   );
@@ -830,11 +834,29 @@ const SubmitButton = ({
                     Token creation fees are non-refundable once the transaction is confirmed
                   </p>
                 </div>
-                {/* Future T&C points can be added here */}
+                <div className="flex items-start gap-3">
+                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-300">
+                    By proceeding, you agree to our{' '}
+                    <Link
+                      href="/terms-of-use"
+                      className="text-primary hover:text-primary/80 underline"
+                    >
+                      Terms of Use
+                    </Link>{' '}
+                    and{' '}
+                    <Link
+                      href="/privacy-policy"
+                      className="text-primary hover:text-primary/80 underline"
+                    >
+                      Privacy Policy
+                    </Link>
+                  </p>
+                </div>
               </div>
               <p className="text-xs text-gray-400 mt-4 border-t border-white/10 pt-3">
-                By proceeding, you acknowledge that you meet all the above requirements and agree to
-                our terms of service.
+                By clicking "Reviewed, Launch Now!" you acknowledge that you have read and agree to
+                all terms and conditions above.
               </p>
             </div>
           </div>

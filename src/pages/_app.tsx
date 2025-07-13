@@ -26,14 +26,19 @@ export default function App({ Component, pageProps }: AppProps) {
           env: 'mainnet-beta',
           autoConnect: true,
           metadata: {
-            name: 'UnifiedWallet',
-            description: 'UnifiedWallet',
-            url: 'https://jup.ag',
-            iconUrls: ['https://jup.ag/favicon.ico'],
+            name: 'Sanafi Launchpad',
+            description: 'Sanafi Token Launchpad',
+            url: 'https://app.ethics.ltd/',
+            iconUrls: [
+              'https://imagedelivery.net/77VSeueIxa_OonUVDWCJsg/logo-sanafi-only-s-symbol/public',
+            ],
           },
           // notificationCallback: WalletNotification,
           theme: 'dark',
           lang: 'en',
+          walletlistExplanation: {
+            href: 'https://station.jup.ag/docs/additional-topics/wallet-list',
+          },
         }}
       >
         <Toaster />

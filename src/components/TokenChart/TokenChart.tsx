@@ -402,9 +402,11 @@ export const TokenChart: React.FC<ChartProps> = memo(({ renderingId, style, opt 
 
     // Price/mcap toggle
     if (config.chartType === 'mcap') {
-      priceMcapTogglerRef.current.innerHTML = 'Price / <span style="color:#c7f284">Mcap</span>';
+      priceMcapTogglerRef.current.innerHTML =
+        'Price / <span style="color:hsl(var(--primary))">Mcap</span>';
     } else {
-      priceMcapTogglerRef.current.innerHTML = '<span style="color:#c7f284">Price</span> / Mcap';
+      priceMcapTogglerRef.current.innerHTML =
+        '<span style="color:hsl(var(--primary))">Price</span> / Mcap';
     }
 
     // Show dev trades toggle

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, Keypair, sendAndConfirmRawTransaction, Transaction } from '@solana/web3.js';
+import { Connection, Keypair, Transaction } from '@solana/web3.js';
 
 const RPC_URL = process.env.RPC_URL as string;
 
@@ -9,7 +9,9 @@ if (!RPC_URL) {
 
 type SendTransactionRequest = {
   signedTransaction: string; // base64 encoded signed transaction
-  additionalSigners: Keypair[];
+  recentBlockhash: string;
+  lastValidBlockHeight: number;
+  additionalSigners?: Keypair[];
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -17,43 +19,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  console.log('req.body', req.body);
   try {
-    const { signedTransaction, additionalSigners } = req.body as SendTransactionRequest;
+    const { signedTransaction, recentBlockhash, lastValidBlockHeight } =
+      req.body as SendTransactionRequest;
 
+    // Validate required fields
     if (!signedTransaction) {
       return res.status(400).json({ error: 'Missing signed transaction' });
+    }
+    if (!recentBlockhash || !lastValidBlockHeight) {
+      return res.status(400).json({ error: 'Missing blockhash information' });
     }
 
     const connection = new Connection(RPC_URL, 'confirmed');
     const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
 
-    // if (!transaction.recentBlockhash) {
-    //   const { blockhash } = await connection.getLatestBlockhash();
-    //   transaction.recentBlockhash = blockhash;
-    // }
-
-    // // Simulate transaction
-    // const simulation = await connection.simulateTransaction(transaction);
-    // if (simulation.value.err) {
-    //   throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`);
-    // }
-
-    // console.log('additionalSigners', additionalSigners);
-
-    // if (additionalSigners) {
-    //   additionalSigners.forEach((signer) => {
-    //     transaction.sign(signer);
-    //   });
-    // }
-
-    // Send transaction
-    const txSignature = await sendAndConfirmRawTransaction(connection, transaction.serialize(), {
-      commitment: 'confirmed',
+    // Send raw transaction and get signature
+    const txSignature = await connection.sendRawTransaction(transaction.serialize(), {
+      skipPreflight: false,
+      maxRetries: 3,
     });
 
-    // Wait for confirmation
-    // await connection.confirmTransaction(signature, 'confirmed');
+    // Confirm the transaction using provided blockhash info
+    // Example response { context: { slot: 351882408 }, value: { err: null } }
+    await connection.confirmTransaction(
+      {
+        signature: txSignature,
+        blockhash: recentBlockhash,
+        lastValidBlockHeight: lastValidBlockHeight,
+      },
+      'confirmed'
+    );
 
     res.status(200).json({
       success: true,

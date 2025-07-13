@@ -29,6 +29,7 @@ export const TokenListTimeframe = {
   HOUR_1: '1h',
   HOUR_6: '6h',
   HOUR_24: '24h',
+  HOUR_48: '48h',
 } as const;
 export type TokenListTimeframe = (typeof TokenListTimeframe)[keyof typeof TokenListTimeframe];
 const TokenListTimeframeRegex = new RegExp(`(?:${Object.values(TokenListTimeframe).join('|')})$`);

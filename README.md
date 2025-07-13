@@ -114,3 +114,133 @@ pnpm build
 ```bash
 pnpm start
 ```
+
+## Docker Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose installed on your server
+- All required environment variables ready
+
+### Deployment Steps
+
+1. Copy the environment template and fill in your values
+
+```bash
+cp .env.docker.example .env
+# Edit .env with your actual configuration values
+```
+
+2. Build and start the Docker container on port 3012
+
+```bash
+docker-compose up -d
+```
+
+This will:
+
+- Build the Docker image for the application
+- Start the container and expose it on port 3012
+- Automatically restart the container if it crashes
+
+3. Check the container status
+
+```bash
+docker-compose ps
+```
+
+4. View logs
+
+```bash
+docker-compose logs -f
+```
+
+5. Stopping the application
+
+```bash
+docker-compose down
+```
+
+### Updating the Application
+
+When you have changes to deploy:
+
+```bash
+# Pull the latest code
+git pull
+
+# Rebuild and restart the container
+docker-compose up -d --build
+```
+
+### Troubleshooting
+
+If you encounter issues:
+
+1. Check Docker logs:
+
+```bash
+docker-compose logs -f
+```
+
+2. Access the container shell:
+
+```bash
+docker-compose exec sanafi-launchpad sh
+```
+
+3. Verify environment variables are correctly set:
+
+```bash
+docker-compose exec sanafi-launchpad env
+```
+
+4. Restart the container:
+
+```bash
+docker-compose restart
+```
+
+### Troubleshooting Docker Build Errors
+
+#### ESLint Errors During Build
+
+If you encounter ESLint errors during the Docker build process like:
+
+```
+Failed to compile.
+
+./src/pages/create-token.tsx
+225:73  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+```
+
+The project has been configured to bypass these errors using the following methods:
+
+1. ESLint warnings are now ignored during Docker builds via the `next.config.ts` configuration.
+2. The React unescaped entities have been fixed in the code.
+3. The build script has been modified to bypass ESLint checks.
+
+If you encounter other ESLint errors:
+
+1. Fix the specific code issues mentioned in the error messages
+2. Or temporarily build with ESLint disabled:
+
+```bash
+NEXT_DISABLE_ESLINT=1 docker-compose up -d --build
+```
+
+#### Image Loading Issues
+
+If token images aren't loading correctly:
+
+1. Check that all domains are properly added to the `images.domains` list in `next.config.ts`
+2. Verify your R2 bucket permissions are correctly configured
+3. Try refreshing the browser cache
+
+#### CORS Issues
+
+If you encounter CORS errors with R2:
+
+1. Set up proper CORS configuration in your Cloudflare R2 bucket
+2. Navigate to R2 dashboard → Your bucket → Settings → CORS
+3. Add appropriate origin settings

@@ -14,7 +14,7 @@ const Page: React.FC<React.PropsWithChildren<IProps>> = ({
   return (
     <div
       className={cn(
-        'flex min-h-screen flex-col justify-between bg-black text-white',
+        'flex min-h-screen flex-col justify-between bg-background text-foreground',
         pageClassName
       )}
     >

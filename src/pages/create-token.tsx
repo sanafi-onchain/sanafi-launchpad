@@ -954,7 +954,7 @@ const SubmitButton = ({
                     <p className="text-xs text-gray-300">
                       By proceeding, you agree to our{' '}
                       <Link
-                        href="https://ethics.ltd/terms-of-use"
+                        href="https://ethics.ltd/terms"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:text-primary/80 underline"
@@ -963,7 +963,7 @@ const SubmitButton = ({
                       </Link>{' '}
                       and{' '}
                       <Link
-                        href="https://ethics.ltd/privacy-policy"
+                        href="https://ethics.ltd/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:text-primary/80 underline"

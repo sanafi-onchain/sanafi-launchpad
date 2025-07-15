@@ -6,9 +6,14 @@ export default function Document() {
     <Html lang="en">
       <Head>
         {/* Favicon with cache busting */}
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="icon" href={`/favicon.ico?v=${Date.now()}`} />
+        <link rel="icon" type="image/x-icon" href={`/favicon.ico?v=${Date.now()}`} />
+        <link rel="shortcut icon" href={`/favicon.ico?v=${Date.now()}`} />
+        <link rel="apple-touch-icon" href={`/favicon.ico?v=${Date.now()}`} />
+
+        {/* Force favicon refresh with meta tag */}
+        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="theme-color" content="#ffffff" />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

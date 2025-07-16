@@ -932,7 +932,10 @@ const SubmitButton = ({
                     <p className="text-xs text-gray-300">
                       Must hold at least{' '}
                       <span className="font-semibold text-white">
-                        {new Intl.NumberFormat().format(1000000)} SANA
+                        {new Intl.NumberFormat().format(
+                          parseInt(process.env.NEXT_PUBLIC_MINIMUM_SANA_REQUIRED || '1000000', 10)
+                        )}{' '}
+                        SANA
                       </span>{' '}
                       tokens to create a new token on this platform
                     </p>

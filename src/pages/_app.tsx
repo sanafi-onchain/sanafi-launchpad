@@ -26,11 +26,11 @@ export default function App({ Component, pageProps }: AppProps) {
           env: 'mainnet-beta',
           autoConnect: true,
           metadata: {
-            name: 'Sanafi Launchpad',
-            description: 'Sanafi Token Launchpad',
+            name: 'Ethics - Ethical Launchpad',
+            description: 'Ethics - Ethical Token Launchpad',
             url: 'https://app.ethics.ltd/',
             iconUrls: [
-              'https://imagedelivery.net/77VSeueIxa_OonUVDWCJsg/logo-sanafi-only-s-symbol/public',
+              'https://imagedelivery.net/77VSeueIxa_OonUVDWCJsg/logo-ethics-only-e-symbol-new/public',
             ],
           },
           // notificationCallback: WalletNotification,

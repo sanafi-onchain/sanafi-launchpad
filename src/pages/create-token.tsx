@@ -14,7 +14,7 @@ import {
 } from '../components/ui/Dialog';
 import { useForm } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
-import { Keypair, Transaction } from '@solana/web3.js';
+import { Keypair, Transaction, Connection } from '@solana/web3.js';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { toast } from 'sonner';
 
@@ -73,7 +73,7 @@ interface FormValues {
 }
 
 export default function CreateToken() {
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, sendTransaction } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -111,8 +111,8 @@ export default function CreateToken() {
         }
 
         // Check if wallet is connected
-        if (!signTransaction) {
-          toast.error('Wallet is not connected yet');
+        if (!signTransaction || !sendTransaction) {
+          toast.error('Wallet is not connected properly');
           return;
         }
 
@@ -149,33 +149,39 @@ export default function CreateToken() {
         // Step 2: Sign with keypair first
         transaction.sign(keyPair);
 
-        // Step 3: Then sign with user's wallet
-        const signedTransaction = await signTransaction(transaction);
+        // Step 3: Use Phantom's preferred method - sendTransaction handles both signing and sending
+        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
 
-        // Step 4: Send signed transaction
-        const sendResponse = await fetch('/api/send-transaction', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            signedTransaction: signedTransaction.serialize().toString('base64'),
-            recentBlockhash,
-            lastValidBlockHeight,
-          }),
-        });
-        if (!sendResponse.ok) {
-          const error = await sendResponse.json();
-          throw new Error(error.error);
-        }
+        try {
+          // This is the Phantom-friendly approach - no manual transaction sending needed
+          const signature = await sendTransaction(transaction, connection, {
+            skipPreflight: false,
+            maxRetries: 3,
+          });
 
-        const { success } = await sendResponse.json();
-        if (success) {
+          // Wait for confirmation
+          const confirmation = await connection.confirmTransaction(
+            {
+              signature,
+              blockhash: recentBlockhash,
+              lastValidBlockHeight,
+            },
+            'confirmed'
+          );
+
+          if (confirmation.value.err) {
+            throw new Error('Transaction failed to confirm');
+          }
+
           toast.success('Token created successfully');
+
           // Store the mint address and token symbol for use in the success page
           setTokenMint(mint);
           setCreatedTokenSymbol(value.tokenSymbol);
           setTokenCreated(true);
+        } catch (txError) {
+          console.error('Transaction error:', txError);
+          throw new Error(txError instanceof Error ? txError.message : 'Transaction failed');
         }
       } catch (error) {
         console.error('Error creating token:', error);
@@ -765,7 +771,7 @@ const SubmitButton = ({
             // Trigger success modal
             setTimeout(() => {
               setTokenCreated(true);
-              setTokenMint('TestMint123456789');
+              setTokenMint('5dpN5wMH8j8au29Rp91qn4WfNq6t6xJfcjQNcFeDJ8Ct');
               setCreatedTokenSymbol('TEST');
             }, 100);
           }}
@@ -795,7 +801,10 @@ const SubmitButton = ({
       </div>
 
       {/* Token Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+      <Dialog
+        open={showPreviewModal}
+        onOpenChange={isSubmittingForm ? undefined : setShowPreviewModal}
+      >
         <DialogContent className="bg-background text-foreground sm:max-w-[1400px] max-h-[95vh] p-6">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-bold text-center">
@@ -988,14 +997,15 @@ const SubmitButton = ({
           <DialogFooter className="flex gap-2 justify-center pt-4 mt-4">
             <Button
               onClick={() => setShowPreviewModal(false)}
-              className="!rounded-lg bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all !px-6 !py-1.5 text-xs h-auto text-white flex items-center gap-1"
+              className="!rounded-lg bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all !px-6 !py-1.5 text-xs h-auto text-white flex items-center gap-1 disabled:hover:scale-100 disabled:hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmittingForm}
             >
               <span className="iconify ph--x-bold w-4 h-4" />
               <span>Cancel</span>
             </Button>
             <Button
               onClick={handleConfirmSubmit}
-              className="!rounded-lg !px-6 !py-1.5 text-xs h-auto flex items-center gap-1 hover:scale-105 active:scale-95 transition-transform"
+              className="!rounded-lg !px-6 !py-1.5 text-xs h-auto flex items-center gap-1 hover:scale-105 active:scale-95 transition-transform disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmittingForm}
             >
               {isSubmittingForm ? (
@@ -1031,10 +1041,32 @@ const TokenCreationSuccess = ({
           <span className="iconify ph--check-bold w-12 h-12 text-green-500" />
         </div>
         <h2 className="text-3xl font-bold mb-4">Token Created Successfully!</h2>
-        <p className="text-gray-300 mb-8 max-w-lg mx-auto">
-          Your token has been created and is now live on the Sanafi Launchpad. Users can now buy and
-          trade your tokens.
+        <p className="text-gray-300 mb-6 mx-auto">
+          Your token has been created and is now live on the Ethics - Ethical Launchpad. Users can
+          now buy and trade your tokens.
         </p>
+
+        {/* Contract Address Section */}
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-8 max-w-lg mx-auto">
+          <div className="text-center">
+            <p className="text-sm text-gray-400 mb-2">${tokenSymbol} Contract Address</p>
+            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3 border border-white/20">
+              <span className="text-sm font-mono text-white truncate mr-2 text-center flex-1">
+                {tokenMint}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(tokenMint);
+                  toast.success('Contract address copied to clipboard!');
+                }}
+                className="flex-shrink-0 p-1.5 hover:bg-white/20 rounded transition-colors"
+                title="Copy to clipboard"
+              >
+                <span className="iconify ph--copy-bold w-4 h-4 text-gray-300" />
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {/* <Link
             href="/"

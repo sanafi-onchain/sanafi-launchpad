@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { cn } from '@/lib/utils';
 
 interface IProps {
@@ -27,6 +28,7 @@ const Page: React.FC<React.PropsWithChildren<IProps>> = ({
       >
         <div className="lg:max-w-7xl w-full">{children}</div>
       </div>
+      <Footer />
     </div>
   );
 };

@@ -6,7 +6,6 @@ export default function Document() {
     <Html lang="en">
       <Head>
         {/* Primary Meta Tags */}
-        <title>Ethics - Ethical Project Launchpad | Build Responsible Technology</title>
         <meta
           name="title"
           content="Ethics - Ethical Project Launchpad | Build Responsible Technology"

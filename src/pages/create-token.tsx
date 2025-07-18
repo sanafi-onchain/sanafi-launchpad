@@ -150,7 +150,10 @@ export default function CreateToken() {
         transaction.sign(keyPair);
 
         // Step 3: Use Phantom's preferred method - sendTransaction handles both signing and sending
-        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+        const connection = new Connection(
+          process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com',
+          'confirmed'
+        );
 
         try {
           // This is the Phantom-friendly approach - no manual transaction sending needed

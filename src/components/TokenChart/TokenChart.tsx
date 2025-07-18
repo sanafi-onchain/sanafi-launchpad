@@ -1,4 +1,5 @@
-import { CSSProperties, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import { useLocalStorage } from 'react-use';
 
 import { createDataFeed } from './datafeed';
@@ -129,7 +130,7 @@ export const TokenChart: React.FC<ChartProps> = memo(({ renderingId, style, opt 
     userAddressRef,
   } = useTokenChart();
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!chartConfig) {
       return;
     }

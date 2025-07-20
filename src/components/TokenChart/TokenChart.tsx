@@ -160,15 +160,26 @@ export const TokenChart: React.FC<ChartProps> = memo(({ renderingId, style, opt 
   const [isLoaded, setIsLoaded] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
 
-  const { data: tokenInfo } = useTokenInfo((data) => data?.baseAsset);
+  const { data: tokenInfo, isLoading: isTokenInfoLoading } = useTokenInfo(
+    (data) => data?.baseAsset
+  );
   const symbol = useMemo(() => {
     return tokenInfo ? `${tokenInfo.symbol.toUpperCase()}/USD` : undefined;
   }, [tokenInfo]);
 
   // Set up widget on first mount
   useEffect(() => {
+    if (isTokenInfoLoading) {
+      console.log('TokenChart: Still loading token info...');
+      return;
+    }
+
     if (!symbol) {
-      console.error('createWidget: missing symbol, breaking: ', { symbol });
+      console.error('createWidget: missing symbol, breaking: ', {
+        symbol,
+        tokenInfo,
+        isTokenInfoLoading,
+      });
       return;
     }
 
@@ -394,7 +405,7 @@ export const TokenChart: React.FC<ChartProps> = memo(({ renderingId, style, opt 
     };
     initializeWidget();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol]);
+  }, [symbol, isTokenInfoLoading]);
 
   function updateButtonTitles(config: ChartConfig) {
     if (!priceMcapTogglerRef.current) {
@@ -484,16 +495,19 @@ export const TokenChart: React.FC<ChartProps> = memo(({ renderingId, style, opt 
         <div
           className={cn(
             `pointer-events-none absolute left-0 top-0 h-full w-full transition-all`,
-            isLoaded && isDataReady ? 'bg-transparent' : `bg-neutral-950`,
+            isLoaded && isDataReady && !isTokenInfoLoading ? 'bg-transparent' : `bg-neutral-950`,
             `flex items-center justify-center`
           )}
         >
-          {!isLoaded || !isDataReady ? <Spinner /> : null}
+          {!isLoaded || !isDataReady || isTokenInfoLoading ? <Spinner /> : null}
         </div>
 
         <div
           id={htmlId}
-          className={cn('h-full w-full', isDataReady ? `opacity-100` : `opacity-0`)}
+          className={cn(
+            'h-full w-full',
+            isDataReady && !isTokenInfoLoading ? `opacity-100` : `opacity-0`
+          )}
           style={{ minHeight: 200, ...style }}
         />
       </div>

@@ -171,10 +171,13 @@ export default function CreateToken() {
             },
             'confirmed'
           );
-
           if (confirmation.value.err) {
+            console.error({ confirmation });
             throw new Error('Transaction failed to confirm');
           }
+
+          // Trigger triggerOnchainSuccess API
+          await fetch(`/api/trigger-onchain-success?mint=${mint}`, { method: 'POST' });
 
           toast.success('Token created successfully');
 
@@ -217,7 +220,7 @@ export default function CreateToken() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
               <h1 className="text-4xl font-bold mb-2">Create Token</h1>
-              <p className="text-gray-300">Launch your token with a customizable price curve</p>
+              <p className="text-gray-300">Launch your token with a customizable details</p>
             </div>
           </div>
 

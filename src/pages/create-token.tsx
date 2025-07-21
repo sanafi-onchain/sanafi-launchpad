@@ -14,7 +14,7 @@ import {
 } from '../components/ui/Dialog';
 import { useForm } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
-import { Keypair, Transaction } from '@solana/web3.js';
+import { Keypair, Transaction, Connection } from '@solana/web3.js';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { toast } from 'sonner';
 
@@ -73,7 +73,7 @@ interface FormValues {
 }
 
 export default function CreateToken() {
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, sendTransaction } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -111,8 +111,8 @@ export default function CreateToken() {
         }
 
         // Check if wallet is connected
-        if (!signTransaction) {
-          toast.error('Wallet is not connected yet');
+        if (!signTransaction || !sendTransaction) {
+          toast.error('Wallet is not connected properly');
           return;
         }
 
@@ -149,33 +149,45 @@ export default function CreateToken() {
         // Step 2: Sign with keypair first
         transaction.sign(keyPair);
 
-        // Step 3: Then sign with user's wallet
-        const signedTransaction = await signTransaction(transaction);
+        // Step 3: Use Phantom's preferred method - sendTransaction handles both signing and sending
+        const connection = new Connection(
+          process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com',
+          'confirmed'
+        );
 
-        // Step 4: Send signed transaction
-        const sendResponse = await fetch('/api/send-transaction', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            signedTransaction: signedTransaction.serialize().toString('base64'),
-            recentBlockhash,
-            lastValidBlockHeight,
-          }),
-        });
-        if (!sendResponse.ok) {
-          const error = await sendResponse.json();
-          throw new Error(error.error);
-        }
+        try {
+          // This is the Phantom-friendly approach - no manual transaction sending needed
+          const signature = await sendTransaction(transaction, connection, {
+            skipPreflight: false,
+            maxRetries: 3,
+          });
 
-        const { success } = await sendResponse.json();
-        if (success) {
+          // Wait for confirmation
+          const confirmation = await connection.confirmTransaction(
+            {
+              signature,
+              blockhash: recentBlockhash,
+              lastValidBlockHeight,
+            },
+            'confirmed'
+          );
+          if (confirmation.value.err) {
+            console.error({ confirmation });
+            throw new Error('Transaction failed to confirm');
+          }
+
+          // Trigger triggerOnchainSuccess API
+          await fetch(`/api/trigger-onchain-success?mint=${mint}`, { method: 'POST' });
+
           toast.success('Token created successfully');
+
           // Store the mint address and token symbol for use in the success page
           setTokenMint(mint);
           setCreatedTokenSymbol(value.tokenSymbol);
           setTokenCreated(true);
+        } catch (txError) {
+          console.error('Transaction error:', txError);
+          throw new Error(txError instanceof Error ? txError.message : 'Transaction failed');
         }
       } catch (error) {
         console.error('Error creating token:', error);
@@ -208,7 +220,7 @@ export default function CreateToken() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
               <h1 className="text-4xl font-bold mb-2">Create Token</h1>
-              <p className="text-gray-300">Launch your token with a customizable price curve</p>
+              <p className="text-gray-300">Launch your token with a customizable details</p>
             </div>
           </div>
 
@@ -742,7 +754,7 @@ const SubmitButton = ({
     <>
       <div className="flex items-center gap-4">
         <Button
-          className="flex items-center gap-2 bg-red-500 hover:bg-red-600 hover:scale-105 active:scale-95 transition-transform"
+          className="!rounded-lg bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all !px-6 !py-1.5 text-xs h-auto text-white flex items-center gap-1"
           type="button"
           onClick={() => {
             form.reset();
@@ -750,7 +762,7 @@ const SubmitButton = ({
             resetLogoPreview();
           }}
         >
-          <span className="iconify ph--arrow-counter-clockwise-bold w-5 h-5" />
+          <span className="iconify ph--arrow-counter-clockwise-bold w-4 h-4" />
           <span>Reset</span>
         </Button>
 
@@ -765,7 +777,7 @@ const SubmitButton = ({
             // Trigger success modal
             setTimeout(() => {
               setTokenCreated(true);
-              setTokenMint('TestMint123456789');
+              setTokenMint('5dpN5wMH8j8au29Rp91qn4WfNq6t6xJfcjQNcFeDJ8Ct');
               setCreatedTokenSymbol('TEST');
             }, 100);
           }}
@@ -775,19 +787,19 @@ const SubmitButton = ({
         </Button> */}
 
         <Button
-          className="flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+          className="!rounded-lg !px-6 !py-1.5 text-xs h-auto flex items-center gap-1 hover:scale-105 active:scale-95 transition-transform"
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
         >
           {isSubmitting ? (
             <>
-              <span className="iconify ph--spinner w-5 h-5 animate-spin" />
+              <span className="iconify ph--spinner w-4 h-4 animate-spin" />
               <span>Creating Token...</span>
             </>
           ) : (
             <>
-              <span className="iconify ph--rocket-bold w-5 h-5" />
+              <span className="iconify ph--rocket-bold w-4 h-4" />
               <span>Create Token</span>
             </>
           )}
@@ -795,92 +807,222 @@ const SubmitButton = ({
       </div>
 
       {/* Token Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="bg-card text-card-foreground border border-border sm:max-w-[550px] p-6">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-2xl font-bold text-center">
+      <Dialog
+        open={showPreviewModal}
+        onOpenChange={isSubmittingForm ? undefined : setShowPreviewModal}
+      >
+        <DialogContent className="bg-background text-foreground sm:max-w-[1400px] max-h-[95vh] p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold text-center">
               Create Token Preview
             </DialogTitle>
           </DialogHeader>
-          <div className="py-4 max-h-[50vh] overflow-y-auto">
-            <TokenPreview form={form} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 overflow-y-auto max-h-[75vh]">
+            {/* Left Side - Token Details & Founder Information */}
+            <div className="pr-2">
+              <div className="space-y-4">
+                {/* Token Details Section */}
+                <div className="border border-white/10 rounded-lg p-4 bg-white/5">
+                  <h3 className="text-lg font-bold mb-3 text-center">Token Details</h3>
 
-            {/* Terms & Conditions Section */}
-            <div className="border border-white/10 rounded-lg p-4 mt-6 bg-yellow-500/10">
-              <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                <span className="iconify ph--warning-bold w-5 h-5 text-yellow-500" />
-                Terms & Conditions
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-300">
-                    Must hold at least{' '}
-                    <span className="font-semibold text-white">
-                      {new Intl.NumberFormat().format(1000000)} SANA
-                    </span>{' '}
-                    tokens to create a new token on this platform
-                  </p>
+                  {/* Logo Section */}
+                  {(() => {
+                    const logoPreview =
+                      form.state.values.tokenLogo instanceof File
+                        ? URL.createObjectURL(form.state.values.tokenLogo)
+                        : null;
+                    return (
+                      logoPreview && (
+                        <div className="flex justify-center mb-4">
+                          <div className="text-center">
+                            <div className="w-16 h-16 mx-auto mb-2 rounded-lg overflow-hidden bg-white/10 flex items-center justify-center">
+                              <img
+                                src={logoPreview}
+                                alt="Token Logo"
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <p className="text-xs text-neutral-400">Token Logo</p>
+                          </div>
+                        </div>
+                      )
+                    );
+                  })()}
+
+                  {/* Token Info Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <p className="text-xs text-neutral-400 mb-1">Token Name</p>
+                      <p className="font-semibold text-sm">
+                        {form.state.values.tokenName || 'Not specified'}
+                      </p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <p className="text-xs text-neutral-400 mb-1">Symbol</p>
+                      <p className="font-semibold text-sm">
+                        {form.state.values.tokenSymbol || 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Description Section */}
+                  <div className="mt-4 bg-white/5 rounded-lg p-3">
+                    <p className="text-xs text-neutral-400 mb-2">Description</p>
+                    <p className="font-medium text-sm leading-relaxed">
+                      {form.state.values.description || 'Not specified'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-300">
-                    All token information must be accurate and comply with platform guidelines
-                  </p>
+
+                {/* Founder Information Section */}
+                <div className="border border-white/10 rounded-lg p-4 bg-white/5">
+                  <h3 className="text-lg font-bold mb-3 text-center">Founder Information</h3>
+                  <div className="space-y-3">
+                    {form.state.values.founders?.map((founder: any, index: number) => (
+                      <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                        <p className="text-sm font-semibold mb-2 text-center">
+                          Founder {index + 1}
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="bg-white/5 rounded-lg p-2">
+                            <p className="text-xs text-neutral-400 mb-1">Name</p>
+                            <p className="font-medium text-sm">{founder.name || 'Not specified'}</p>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2">
+                            <p className="text-xs text-neutral-400 mb-1">X Profile</p>
+                            <p className="font-medium text-sm">
+                              {founder.twitter || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-300">
-                    Token creation fees are non-refundable once the transaction is confirmed
-                  </p>
+              </div>
+            </div>
+
+            {/* Right Side - Social Links & Terms & Conditions */}
+            <div className="flex flex-col space-y-4">
+              {/* Social Links Section */}
+              <div className="border border-white/10 rounded-lg p-4 bg-white/5">
+                <h3 className="text-lg font-bold mb-3 text-center">Social Links</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-xs text-neutral-400 mb-1">Website</p>
+                    <p className="font-medium text-sm truncate">
+                      {form.state.values.website || 'Not specified'}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-xs text-neutral-400 mb-1">X Profile</p>
+                    <p className="font-medium text-sm truncate">
+                      {form.state.values.twitter || 'Not specified'}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-xs text-neutral-400 mb-1">Telegram</p>
+                    <p className="font-medium text-sm truncate">
+                      {form.state.values.telegram || 'Not specified'}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-xs text-neutral-400 mb-1">LinkedIn</p>
+                    <p className="font-medium text-sm truncate">
+                      {form.state.values.linkedin || 'Not specified'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="iconify ph--check-circle-bold w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-300">
-                    By proceeding, you agree to our{' '}
-                    <Link
-                      href="/terms-of-use"
-                      className="text-primary hover:text-primary/80 underline"
-                    >
-                      Terms of Use
-                    </Link>{' '}
-                    and{' '}
-                    <Link
-                      href="/privacy-policy"
-                      className="text-primary hover:text-primary/80 underline"
-                    >
-                      Privacy Policy
-                    </Link>
+              </div>
+
+              {/* Terms & Conditions Section */}
+              <div className="border border-white/10 rounded-lg p-4 bg-yellow-500/10 flex-1">
+                <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                  <span className="iconify ph--warning-bold w-4 h-4 text-yellow-500" />
+                  Terms & Conditions
+                </h3>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-start gap-3">
+                    <span className="iconify ph--check-circle-bold w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-300">
+                      Must hold at least{' '}
+                      <span className="font-semibold text-white">
+                        {new Intl.NumberFormat().format(
+                          parseInt(process.env.NEXT_PUBLIC_MINIMUM_SANA_REQUIRED || '1000000', 10)
+                        )}{' '}
+                        SANA
+                      </span>{' '}
+                      tokens to create a new token on this platform
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="iconify ph--check-circle-bold w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-300">
+                      All token information must be accurate and comply with platform guidelines
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="iconify ph--check-circle-bold w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-300">
+                      Token creation fees are non-refundable once the transaction is confirmed
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="iconify ph--check-circle-bold w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-300">
+                      By proceeding, you agree to our{' '}
+                      <Link
+                        href="https://ethics.ltd/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 underline"
+                      >
+                        Terms of Use
+                      </Link>{' '}
+                      and{' '}
+                      <Link
+                        href="https://ethics.ltd/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 underline"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+                <div className="border-t border-white/10 pt-3 mt-auto">
+                  <p className="text-xs text-gray-400">
+                    By clicking "Reviewed, Launch Now!" you acknowledge that you have read and agree
+                    to all terms and conditions above.
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-4 border-t border-white/10 pt-3">
-                By clicking "Reviewed, Launch Now!" you acknowledge that you have read and agree to
-                all terms and conditions above.
-              </p>
             </div>
           </div>
-          <DialogFooter className="flex gap-2 justify-center pt-4">
+          <DialogFooter className="flex gap-2 justify-center pt-4 mt-4">
             <Button
               onClick={() => setShowPreviewModal(false)}
-              className="px-6 py-3 bg-red-500 hover:bg-red-600 rounded-full transition-colors flex items-center"
+              className="!rounded-lg bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all !px-6 !py-1.5 text-xs h-auto text-white flex items-center gap-1 disabled:hover:scale-100 disabled:hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmittingForm}
             >
-              <span className="ml-2">Cancel</span>
+              <span className="iconify ph--x-bold w-4 h-4" />
+              <span>Cancel</span>
             </Button>
             <Button
               onClick={handleConfirmSubmit}
-              className="px-6 py-3 bg-primary hover:bg-primary/90 text-black rounded-full transition-colors flex items-center"
+              className="!rounded-lg !px-6 !py-1.5 text-xs h-auto flex items-center gap-1 hover:scale-105 active:scale-95 transition-transform disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmittingForm}
             >
               {isSubmittingForm ? (
                 <>
-                  <span className="iconify ph--spinner w-5 h-5 animate-spin" />
-                  <span className="ml-2">Creating Token...</span>
+                  <span className="iconify ph--spinner w-4 h-4 animate-spin" />
+                  <span>Creating Token...</span>
                 </>
               ) : (
                 <>
+                  <span className="iconify ph--rocket-bold w-4 h-4" />
                   <span>Reviewed, Launch Now!</span>
-                  <span className="iconify ph--rocket-bold w-5 h-5 ml-2" />
                 </>
               )}
             </Button>
@@ -905,10 +1047,32 @@ const TokenCreationSuccess = ({
           <span className="iconify ph--check-bold w-12 h-12 text-green-500" />
         </div>
         <h2 className="text-3xl font-bold mb-4">Token Created Successfully!</h2>
-        <p className="text-gray-300 mb-8 max-w-lg mx-auto">
-          Your token has been created and is now live on the Sanafi Launchpad. Users can now buy and
-          trade your tokens.
+        <p className="text-gray-300 mb-6 mx-auto">
+          Your token has been created and is now live on the Ethics - Ethical Launchpad. Users can
+          now buy and trade your tokens.
         </p>
+
+        {/* Contract Address Section */}
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-8 max-w-lg mx-auto">
+          <div className="text-center">
+            <p className="text-sm text-gray-400 mb-2">${tokenSymbol} Contract Address</p>
+            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3 border border-white/20">
+              <span className="text-sm font-mono text-white truncate mr-2 text-center flex-1">
+                {tokenMint}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(tokenMint);
+                  toast.success('Contract address copied to clipboard!');
+                }}
+                className="flex-shrink-0 p-1.5 hover:bg-white/20 rounded transition-colors"
+                title="Copy to clipboard"
+              >
+                <span className="iconify ph--copy-bold w-4 h-4 text-gray-300" />
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {/* <Link
             href="/"
@@ -946,15 +1110,15 @@ const TokenPreview = ({ form }: { form: any }) => {
       : null;
 
   return (
-    <div className="space-y-6">
-      <div className="border border-white/10 rounded-lg p-6 bg-white/5">
-        <h3 className="text-xl font-bold mb-4 text-center">Token Details</h3>
+    <div className="space-y-4">
+      <div className="border border-white/10 rounded-lg p-4 bg-white/5">
+        <h3 className="text-lg font-bold mb-3 text-center">Token Details</h3>
 
         {/* Logo Section */}
         {logoPreview && (
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4">
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-2 rounded-lg overflow-hidden bg-white/10 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-2 rounded-lg overflow-hidden bg-white/10 flex items-center justify-center">
                 <img src={logoPreview} alt="Token Logo" className="w-full h-full object-contain" />
               </div>
               <p className="text-xs text-neutral-400">Token Logo</p>
@@ -963,38 +1127,40 @@ const TokenPreview = ({ form }: { form: any }) => {
         )}
 
         {/* Token Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white/5 rounded-lg p-4">
-            <p className="text-sm text-neutral-400 mb-1">Token Name</p>
-            <p className="font-semibold text-lg">{formValues.tokenName || 'Not specified'}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white/5 rounded-lg p-3">
+            <p className="text-xs text-neutral-400 mb-1">Token Name</p>
+            <p className="font-semibold text-sm">{formValues.tokenName || 'Not specified'}</p>
           </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <p className="text-sm text-neutral-400 mb-1">Symbol</p>
-            <p className="font-semibold text-lg">{formValues.tokenSymbol || 'Not specified'}</p>
+          <div className="bg-white/5 rounded-lg p-3">
+            <p className="text-xs text-neutral-400 mb-1">Symbol</p>
+            <p className="font-semibold text-sm">{formValues.tokenSymbol || 'Not specified'}</p>
           </div>
         </div>
 
         {/* Description Section */}
-        <div className="mt-6 bg-white/5 rounded-lg p-4">
-          <p className="text-sm text-neutral-400 mb-2">Description</p>
-          <p className="font-medium leading-relaxed">{formValues.description || 'Not specified'}</p>
+        <div className="mt-4 bg-white/5 rounded-lg p-3">
+          <p className="text-xs text-neutral-400 mb-2">Description</p>
+          <p className="font-medium text-sm leading-relaxed">
+            {formValues.description || 'Not specified'}
+          </p>
         </div>
       </div>
 
-      <div className="border border-white/10 rounded-lg p-6 bg-white/5">
-        <h3 className="text-xl font-bold mb-4 text-center">Founder Information</h3>
-        <div className="space-y-4">
+      <div className="border border-white/10 rounded-lg p-4 bg-white/5">
+        <h3 className="text-lg font-bold mb-3 text-center">Founder Information</h3>
+        <div className="space-y-3">
           {formValues.founders?.map((founder: any, index: number) => (
-            <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <p className="text-md font-semibold mb-3 text-center">Founder {index + 1}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-sm text-neutral-400 mb-1">Name</p>
-                  <p className="font-medium">{founder.name || 'Not specified'}</p>
+            <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
+              <p className="text-sm font-semibold mb-2 text-center">Founder {index + 1}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-white/5 rounded-lg p-2">
+                  <p className="text-xs text-neutral-400 mb-1">Name</p>
+                  <p className="font-medium text-sm">{founder.name || 'Not specified'}</p>
                 </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-sm text-neutral-400 mb-1">X Profile</p>
-                  <p className="font-medium">{founder.twitter || 'Not specified'}</p>
+                <div className="bg-white/5 rounded-lg p-2">
+                  <p className="text-xs text-neutral-400 mb-1">X Profile</p>
+                  <p className="font-medium text-sm">{founder.twitter || 'Not specified'}</p>
                 </div>
               </div>
             </div>
@@ -1002,24 +1168,24 @@ const TokenPreview = ({ form }: { form: any }) => {
         </div>
       </div>
 
-      <div className="border border-white/10 rounded-lg p-6 bg-white/5">
-        <h3 className="text-xl font-bold mb-4 text-center">Social Links</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/5 rounded-lg p-4">
-            <p className="text-sm text-neutral-400 mb-1">Website</p>
-            <p className="font-medium truncate">{formValues.website || 'Not specified'}</p>
+      <div className="border border-white/10 rounded-lg p-4 bg-white/5">
+        <h3 className="text-lg font-bold mb-3 text-center">Social Links</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="bg-white/5 rounded-lg p-3">
+            <p className="text-xs text-neutral-400 mb-1">Website</p>
+            <p className="font-medium text-sm truncate">{formValues.website || 'Not specified'}</p>
           </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <p className="text-sm text-neutral-400 mb-1">X Profile</p>
-            <p className="font-medium truncate">{formValues.twitter || 'Not specified'}</p>
+          <div className="bg-white/5 rounded-lg p-3">
+            <p className="text-xs text-neutral-400 mb-1">X Profile</p>
+            <p className="font-medium text-sm truncate">{formValues.twitter || 'Not specified'}</p>
           </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <p className="text-sm text-neutral-400 mb-1">Telegram</p>
-            <p className="font-medium truncate">{formValues.telegram || 'Not specified'}</p>
+          <div className="bg-white/5 rounded-lg p-3">
+            <p className="text-xs text-neutral-400 mb-1">Telegram</p>
+            <p className="font-medium text-sm truncate">{formValues.telegram || 'Not specified'}</p>
           </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <p className="text-sm text-neutral-400 mb-1">LinkedIn</p>
-            <p className="font-medium truncate">{formValues.linkedin || 'Not specified'}</p>
+          <div className="bg-white/5 rounded-lg p-3">
+            <p className="text-xs text-neutral-400 mb-1">LinkedIn</p>
+            <p className="font-medium text-sm truncate">{formValues.linkedin || 'Not specified'}</p>
           </div>
         </div>
       </div>

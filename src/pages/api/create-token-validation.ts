@@ -88,9 +88,9 @@ export default async function handler(
       });
     }
 
-    // Check if user has sufficient SANA balance (example: minimum 1000000 SANA required)
+    // Check if user has sufficient SANA balance
     const sanaToken = tokensData.find((token) => token.symbol === 'SANA');
-    const minimumSanaRequired = 1000000;
+    const minimumSanaRequired = parseInt(process.env.MINIMUM_SANA_REQUIRED || '100000', 10);
     const formattedMinimumSanaRequired = new Intl.NumberFormat('en-US').format(minimumSanaRequired);
     const formattedCurrentBalance = new Intl.NumberFormat('en-US').format(sanaToken?.balance || 0);
 

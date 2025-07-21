@@ -11,9 +11,9 @@ import {
   createContext,
   useCallback,
   useContext,
-  useLayoutEffect,
   useRef,
 } from 'react';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import { Pool } from './types';
 import { GetChartRequest } from '@/components/Explore/types';
 import { useDataStreamListener } from './DataStreamProvider';
@@ -51,7 +51,7 @@ export const TokenChartProvider: React.FC<PropsWithChildren> = ({ children }) =>
 
   // Required to calculate chart mcap
   const { data: baseAsset } = useTokenInfo((pool) => pool.baseAsset);
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     baseAssetRef.current = baseAsset;
   }, [baseAsset, baseAssetRef]);
 
@@ -59,7 +59,7 @@ export const TokenChartProvider: React.FC<PropsWithChildren> = ({ children }) =>
   const { publicKey } = useWallet();
   const address = publicKey?.toBase58();
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     userAddressRef.current = address;
   }, [address, userAddressRef]);
 

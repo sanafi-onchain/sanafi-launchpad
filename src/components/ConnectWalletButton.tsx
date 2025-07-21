@@ -33,23 +33,29 @@ export const ConnectWalletButton = ({ className }: ConnectWalletButtonProps) => 
       {address ? (
         <Button
           onClick={handleDisconnect}
-          className="hover:scale-105 active:scale-95 transition-transform"
+          className="!rounded-lg hover:scale-105 active:scale-95 transition-transform !px-6 !py-1.5 text-xs h-auto"
         >
-          {shortenAddress(address)}
+          <span className="flex items-center gap-1">
+            <span className="iconify ph--sign-out-bold w-4 h-4" />
+            <span>{shortenAddress(address)}</span>
+          </span>
         </Button>
       ) : (
         <Button
           onClick={handleConnectWallet}
-          className="hover:scale-105 active:scale-95 transition-transform"
+          className="!rounded-lg hover:scale-105 active:scale-95 transition-transform !px-6 !py-1.5 text-xs h-auto"
         >
-          <span className="hidden md:block">Connect Wallet</span>
-          <span className="block md:hidden">Connect</span>
+          <span className="flex items-center gap-1">
+            <span className="iconify ph--wallet-bold w-4 h-4" />
+            <span className="hidden md:block">Connect Wallet</span>
+            <span className="block md:hidden">Connect</span>
+          </span>
         </Button>
       )}
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <DialogContent className="bg-card text-card-foreground border border-border sm:max-w-[400px] p-6">
+        <DialogContent className="bg-background text-foreground sm:max-w-[400px] p-6">
           <DialogHeader className="mb-2">
             <DialogTitle className="text-2xl font-bold text-center">Confirm Disconnect</DialogTitle>
           </DialogHeader>
@@ -59,13 +65,13 @@ export const ConnectWalletButton = ({ className }: ConnectWalletButtonProps) => 
           <DialogFooter className="flex gap-6 justify-center pt-4">
             <Button
               onClick={() => setShowLogoutConfirm(false)}
-              className="bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all px-6 text-white"
+              className="!rounded-lg bg-muted hover:bg-muted/80 hover:scale-105 active:scale-95 transition-all px-6 text-white"
             >
               Cancel
             </Button>
             <Button
               onClick={confirmDisconnect}
-              className="hover:scale-105 active:scale-95 transition-all px-6"
+              className="!rounded-lg hover:scale-105 active:scale-95 transition-all px-6"
             >
               Yes, Disconnect
             </Button>

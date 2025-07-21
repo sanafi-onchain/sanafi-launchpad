@@ -8,7 +8,7 @@ import { TokenListTimeframe } from '@/components/Explore/types';
 import { GemsTokenListQueryArgs } from '@/components/Explore/queries';
 import { StorageKey } from '@/constants';
 
-export const EXPLORE_FIXED_TIMEFRAME: TokenListTimeframe = '48h';
+export const EXPLORE_FIXED_TIMEFRAME: TokenListTimeframe = '24h';
 const DEFAULT_TAB: ExploreTab = ExploreTab.NEW;
 
 type FiltersConfig = {

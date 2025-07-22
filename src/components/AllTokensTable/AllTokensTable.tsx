@@ -63,8 +63,13 @@ const AllTokensTable: React.FC<AllTokensTableProps> = ({ className }) => {
 
   const formatCreatedAt = (dateString: string) => {
     try {
-      const date = new Date(dateString);
+      // Ensure we parse the UTC date correctly
+      // If the dateString doesn't end with 'Z', assume it's UTC and add 'Z'
+      const utcDateString = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
+      const date = new Date(utcDateString);
       const now = new Date();
+
+      // Both dates are now in UTC for accurate comparison
       const diffInMs = now.getTime() - date.getTime();
       const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
       const diffInHours = Math.floor(diffInMinutes / 60);
@@ -74,6 +79,8 @@ const AllTokensTable: React.FC<AllTokensTableProps> = ({ className }) => {
       if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
       if (diffInHours < 24) return `${diffInHours}h ago`;
       if (diffInDays < 7) return `${diffInDays}d ago`;
+
+      // For older dates, show in user's local timezone
       return date.toLocaleDateString();
     } catch {
       return 'Unknown';

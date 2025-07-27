@@ -2,23 +2,57 @@ import ExploreGrid from './ExploreGrid';
 import { DataStreamProvider } from '@/contexts/DataStreamProvider';
 import { ExploreMsgHandler } from './ExploreMsgHandler';
 import { ExploreProvider } from '@/contexts/ExploreProvider';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useState } from 'react';
 import AllTokensTable from '@/components/AllTokensTable';
+import { cn } from '@/lib/utils';
+
+type TabType = 'AlphaScan' | 'All Active';
 
 const Explore = () => {
+  const [activeTab, setActiveTab] = useState<TabType>('AlphaScan');
+
   return (
     <ExploreContext>
-      <div className="py-8 space-y-8">
-        {/* 24h Tokens Section */}
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-6">24h Tokens</h1>
-          <ExploreGrid className="flex-1" />
+      <div className="py-4 space-y-4">
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 bg-neutral-900/50 p-1 rounded-lg w-fit">
+          <button
+            onClick={() => setActiveTab('AlphaScan')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
+              activeTab === 'AlphaScan'
+                ? 'bg-white/5 text-white'
+                : 'text-neutral-500 hover:text-neutral-300'
+            )}
+          >
+            AlphaScan
+          </button>
+          <button
+            onClick={() => setActiveTab('All Active')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
+              activeTab === 'All Active'
+                ? 'bg-white/5 text-white'
+                : 'text-neutral-500 hover:text-neutral-300'
+            )}
+          >
+            All Active
+          </button>
         </div>
 
-        {/* All Tokens Section */}
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-6">All Tokens</h1>
-          <AllTokensTable />
+        {/* Tab Content */}
+        <div className="min-h-[600px]">
+          {activeTab === 'AlphaScan' && (
+            <div>
+              <ExploreGrid className="flex-1" />
+            </div>
+          )}
+
+          {activeTab === 'All Active' && (
+            <div>
+              <AllTokensTable />
+            </div>
+          )}
         </div>
       </div>
     </ExploreContext>

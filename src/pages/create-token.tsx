@@ -1210,7 +1210,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const isValidToken = await bcrypt.compare(`${username},${password}`, `$2a$12$U.${token}`);
   const isStaging = process.env.SANAFI_NODE_ENV === 'staging';
 
-  // if token valid redirect to home '/'
+  // if token invalid and node env === staging, redirect to home '/auth' need login first
   if (isStaging && !isValidToken) {
     return {
       redirect: {

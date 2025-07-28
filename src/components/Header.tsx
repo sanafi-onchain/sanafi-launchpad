@@ -21,8 +21,8 @@ export const Header = () => {
 
         {/* Navigation and Actions */}
         <div className="flex items-center gap-4">
-          {router.pathname !== '/create-token' && <CreateTokenButton />}
-          <ConnectWalletButton />
+          {!['/create-token', '/auth'].includes(router.pathname) && <CreateTokenButton />}
+          {!['/auth'].includes(router.pathname) && <ConnectWalletButton />}
         </div>
       </div>
     </header>

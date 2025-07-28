@@ -17,6 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Keypair, Transaction, Connection } from '@solana/web3.js';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { toast } from 'sonner';
+import { parse } from 'cookie';
+import bcrypt from 'bcryptjs';
+import { GetServerSideProps } from 'next';
 
 // Define the schema for form validation
 const founderSchema = z.object({
@@ -1191,4 +1194,33 @@ const TokenPreview = ({ form }: { form: any }) => {
       </div>
     </div>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { req } = context;
+  // read credentials from env
+  const username = process.env.SANAFI_USERNAME!;
+  const password = process.env.SANAFI_PASSWORD!;
+
+  // read cookies
+  const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+  const token = cookies['sana_auth'] || '';
+
+  // check and validation
+  const isValidToken = await bcrypt.compare(`${username},${password}`, `$2a$12$U.${token}`);
+  const isStaging = process.env.SANAFI_NODE_ENV === 'staging';
+
+  // if token valid redirect to home '/'
+  if (isStaging && !isValidToken) {
+    return {
+      redirect: {
+        destination: '/auth',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
 };

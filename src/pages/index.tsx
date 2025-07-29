@@ -4,7 +4,11 @@ import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import { parse } from 'cookie';
 
-export default function Index({ isLogin }) {
+type IndexProps = {
+  isLogin: boolean;
+};
+
+export default function Index({ isLogin }: IndexProps) {
   return (
     <>
       <Head>

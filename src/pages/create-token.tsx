@@ -17,6 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Keypair, Transaction, Connection } from '@solana/web3.js';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { toast } from 'sonner';
+import { parse } from 'cookie';
+import bcrypt from 'bcryptjs';
+import { GetServerSideProps } from 'next';
 
 // Define the schema for form validation
 const founderSchema = z.object({
@@ -72,7 +75,7 @@ interface FormValues {
   founders: FounderInfo[];
 }
 
-export default function CreateToken() {
+export default function CreateToken({ isLogin }) {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
@@ -213,7 +216,7 @@ export default function CreateToken() {
 
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         {/* Header */}
-        <Header />
+        <Header isLogin={isLogin} />
 
         {/* Page Content */}
         <main className="container mx-auto px-4 py-10 flex-1">
@@ -1191,4 +1194,35 @@ const TokenPreview = ({ form }: { form: any }) => {
       </div>
     </div>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { req } = context;
+  // read credentials from env
+  const username = process.env.SANAFI_USERNAME!;
+  const password = process.env.SANAFI_PASSWORD!;
+
+  // read cookies
+  const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+  const token = cookies['sana_auth'] || '';
+
+  // check and validation
+  const isValidToken = await bcrypt.compare(`${username},${password}`, `$2a$12$U.${token}`);
+  const isStaging = process.env.SANAFI_NODE_ENV === 'staging';
+
+  // if token invalid and node env === staging, redirect to home '/auth' need login first
+  if (isStaging && !isValidToken) {
+    return {
+      redirect: {
+        destination: '/auth',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {
+      isLogin: !!token,
+    },
+  };
 };

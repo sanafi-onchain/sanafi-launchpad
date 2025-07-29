@@ -9,6 +9,8 @@ import { DataStreamProvider, useDataStream } from '@/contexts/DataStreamProvider
 import { useTokenAddress, useTokenInfo } from '@/hooks/queries';
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
+import { GetServerSideProps } from 'next';
+import { parse } from 'cookie';
 
 const Terminal = dynamic(() => import('@/components/Terminal'), { ssr: false });
 
@@ -28,7 +30,7 @@ const SwapWidget = () => {
   return <Terminal mint={tokenId} />;
 };
 
-export const TokenPageWithContext = () => {
+export const TokenPageWithContext = ({ isLogin }: { isLogin: boolean }) => {
   const tokenId = useTokenAddress();
   const { data: poolId } = useTokenInfo((data) => data?.id);
   const { subscribeTxns, unsubscribeTxns, subscribePools, unsubscribePools } = useDataStream();
@@ -58,7 +60,7 @@ export const TokenPageWithContext = () => {
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-background text-foreground">
-      <Header />
+      <Header isLogin={isLogin} />
       <div className="flex flex-1 flex-col items-center px-1 md:px-3 pt-4 pb-16">
         <div className="lg:max-w-7xl w-full">
           <TokenPageMsgHandler />
@@ -99,10 +101,23 @@ export const TokenPageWithContext = () => {
   );
 };
 
-export default function TokenPage() {
+export default function TokenPage({ isLogin }: { isLogin: boolean }) {
   return (
     <DataStreamProvider>
-      <TokenPageWithContext />
+      <TokenPageWithContext isLogin={isLogin} />
     </DataStreamProvider>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { req } = context;
+  // read cookies
+  const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+  const token = cookies['sana_auth'] || '';
+
+  return {
+    props: {
+      isLogin: !!token,
+    },
+  };
+};

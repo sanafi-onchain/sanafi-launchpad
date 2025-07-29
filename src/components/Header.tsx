@@ -1,10 +1,23 @@
 import Link from 'next/link';
 import { CreateTokenButton } from './CreateTokenButton';
 import { ConnectWalletButton } from './ConnectWalletButton';
+import { LogoutButton } from './LogoutButton';
 import { useRouter } from 'next/router';
+import Cookies from 'js-cookie';
 
-export const Header = () => {
+export const Header = ({ isLogin }) => {
   const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', { method: 'POST' });
+      if (response.ok) {
+        router.reload();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <header className="w-full px-4 py-3">
@@ -23,6 +36,7 @@ export const Header = () => {
         <div className="flex items-center gap-4">
           {!['/create-token', '/auth'].includes(router.pathname) && <CreateTokenButton />}
           {!['/auth'].includes(router.pathname) && <ConnectWalletButton />}
+          {isLogin && <LogoutButton onClick={() => handleLogout()} />}
         </div>
       </div>
     </header>

@@ -75,7 +75,7 @@ interface FormValues {
   founders: FounderInfo[];
 }
 
-export default function CreateToken() {
+export default function CreateToken({ isLogin }) {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
@@ -216,7 +216,7 @@ export default function CreateToken() {
 
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         {/* Header */}
-        <Header />
+        <Header isLogin={isLogin} />
 
         {/* Page Content */}
         <main className="container mx-auto px-4 py-10 flex-1">
@@ -1221,6 +1221,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   return {
-    props: {},
+    props: {
+      isLogin: !!token,
+    },
   };
 };

@@ -75,7 +75,7 @@ interface FormValues {
   founders: FounderInfo[];
 }
 
-export default function CreateToken({ isLogin }) {
+export default function CreateToken({ isLogin }: { isLogin: boolean }) {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey]);
 

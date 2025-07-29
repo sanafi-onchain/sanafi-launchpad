@@ -3,9 +3,12 @@ import { CreateTokenButton } from './CreateTokenButton';
 import { ConnectWalletButton } from './ConnectWalletButton';
 import { LogoutButton } from './LogoutButton';
 import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
 
-export const Header = ({ isLogin }) => {
+type HeaderProps = {
+  isLogin?: boolean;
+};
+
+export const Header = ({ isLogin }: HeaderProps) => {
   const router = useRouter();
 
   const handleLogout = async () => {

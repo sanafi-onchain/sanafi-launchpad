@@ -5,12 +5,14 @@ import { cn } from '@/lib/utils';
 interface IProps {
   containerClassName?: string;
   pageClassName?: string;
+  isLogin?: boolean;
 }
 
 const Page: React.FC<React.PropsWithChildren<IProps>> = ({
   containerClassName,
   children,
   pageClassName,
+  isLogin,
 }) => {
   return (
     <div
@@ -19,7 +21,7 @@ const Page: React.FC<React.PropsWithChildren<IProps>> = ({
         pageClassName
       )}
     >
-      <Header />
+      <Header isLogin={isLogin} />
       <div
         className={cn(
           'flex flex-1 flex-col items-center px-1 md:px-3 pt-4 pb-16',

@@ -2,6 +2,8 @@ import { Html, Head, Main, NextScript } from 'next/document';
 import Script from 'next/script';
 
 export default function Document() {
+  const isProduction = (process.env.SANAFI_NODE_ENV as string) !== 'staging';
+
   return (
     <Html lang="en">
       <Head>
@@ -76,6 +78,14 @@ export default function Document() {
           rel="stylesheet"
         />
         <Script src="https://terminal.jup.ag/main-v4.js" />
+        {/* Cloudflare Web Analytics */}
+        {isProduction && (
+          <Script
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon='{"token": "25939db0a1964db09be4a9f717ff1f21"}'
+          />
+        )}
+        {/* End Cloudflare Web Analytics */}
       </Head>
       <body className="antialiased">
         <Main />

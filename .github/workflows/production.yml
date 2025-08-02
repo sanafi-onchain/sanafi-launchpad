@@ -1,0 +1,48 @@
+name: Deploy to Production
+description: Deploys the Sanafi Launchpad to the production environment on push to the production branch
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.PRODUCTION_KEY_PEM }}" > private_key.pem
+          chmod 600 private_key.pem
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.PRODUCTION_VPS_USER }}@${{ secrets.PRODUCTION_VPS_HOST }} << 'EOF'
+            sudo -i
+            
+            echo "Pulling the latest Docker image..."
+            docker pull reviart18/sanafi-launchpad:production
+
+            echo "Stopping and removing existing container..."
+            docker stop sanafi-launchpad-production 2>/dev/null || true
+            docker rm sanafi-launchpad-production 2>/dev/null || true
+
+            echo "Running the new container with health checks..."
+            docker run -d \
+              --name sanafi-launchpad-production \
+              --restart on-failure:5 \
+              --platform linux/amd64 \
+              -p 3013:3013 \
+              --health-cmd="curl -f http://localhost:3013 || exit 1" \
+              --health-interval=30s \
+              --health-timeout=10s \
+              --health-start-period=15s \
+              --health-retries=3 \
+              reviart18/sanafi-launchpad:production
+
+            echo "Deployment completed successfully!"
+          EOF

@@ -87,10 +87,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const MAX_FILE_SIZE = 2.5 * 1024 * 1024; // Increased to allow encoding overhead // 2.5MB limit
   try {
     // Parse multipart form data
     const form = formidable({
-      maxFileSize: 2 * 1024 * 1024, // 2MB limit
+      maxFileSize: MAX_FILE_SIZE,
       filter: ({ name, originalFilename, mimetype }) => {
         // Only allow specific file types for tokenLogo
         if (name === 'tokenLogo') {
@@ -122,9 +123,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Parse founders JSON
     const founders = foundersStr ? JSON.parse(foundersStr) : [];
 
-    // Validate required fields
     if (!tokenLogo || !tokenName || !tokenSymbol || !mint || !userWallet) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate required fields
+    console.log('Uploaded file size:', tokenLogo?.size);
+    if (tokenLogo?.size > MAX_FILE_SIZE) {
+      return res.status(400).json({ error: 'Image exceeds 2MB size limit' });
     }
 
     // Upload image
